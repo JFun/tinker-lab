@@ -389,26 +389,26 @@ func _test_hints_then_quit() -> void:
 	get_tree().quit(0 if _test_fail == 0 else 1)
 
 func _th_analytics_payload() -> void:
-	# Analytics is disabled at runtime (no GA4 credentials), but build_body() is
-	# pure and must produce a valid GA4 Measurement Protocol payload regardless.
-	Analytics._client_id = "testcid.123"
+	# Analytics is disabled off-device (the native Firebase bridge only exists in
+	# the iOS app), but build_record() is pure and must produce the JSONL record
+	# shape the Swift file-watcher (AnalyticsBridge.swift) expects regardless.
+	Analytics._user_id = "testuid12345678"
 	Analytics._session_id = "999"
-	var body := Analytics.build_body("invention_discovered", {"invention_id": "fan", "total_discovered": 3})
-	_tok(body.get("client_id", "") == "testcid.123", "analytics: client_id passthrough")
-	_tok(body.has("events") and body["events"].size() == 1, "analytics: single event")
-	var ev: Dictionary = body["events"][0]
-	_tok(ev.get("name", "") == "invention_discovered", "analytics: event name")
-	var p: Dictionary = ev.get("params", {})
+	var rec := Analytics.build_record("invention_discovered", {"invention_id": "fan", "total_discovered": 3})
+	_tok(rec.get("name", "") == "invention_discovered", "analytics: event name")
+	_tok(rec.has("params"), "analytics: params present")
+	var p: Dictionary = rec.get("params", {})
 	_tok(p.get("invention_id", "") == "fan", "analytics: custom param kept")
+	_tok(p.get("user_id", "") == "testuid12345678", "analytics: user_id injected")
 	_tok(p.get("session_id", "") == "999", "analytics: session_id injected")
-	_tok(p.get("engagement_time_msec", 0) == 1, "analytics: engagement_time injected")
-	# Must serialize to valid JSON (no Variants GA4 can't parse).
-	var s := JSON.stringify(body)
-	_tok(s.length() > 0 and JSON.parse_string(s) != null, "analytics: JSON round-trips")
-	# Signal-driven handler must not crash and must produce a building_complete
-	# event with the NPC's building label + 1-based level.
-	var qbody := Analytics.build_body("building_complete", {"npc_id": "lux", "building": "Street Lamps", "level": 1})
-	_tok(qbody["events"][0]["params"].get("building", "") == "Street Lamps", "analytics: building param")
+	_tok(p.has("t"), "analytics: timestamp injected")
+	# Must serialize to one valid JSON line (the bridge parses line-by-line).
+	var s := JSON.stringify(rec)
+	_tok(s.length() > 0 and not s.contains("\n") and JSON.parse_string(s) != null, "analytics: JSON line round-trips")
+	# Signal-driven handler must produce a building_complete record carrying the
+	# NPC's building label + 1-based level.
+	var qrec := Analytics.build_record("building_complete", {"npc_id": "lux", "building": "Street Lamps", "level": 1})
+	_tok(qrec["params"].get("building", "") == "Street Lamps", "analytics: building param")
 
 func _clear_test_board() -> void:
 	for y in GameState.BOARD_H:
