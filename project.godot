@@ -21,7 +21,6 @@ Items="*res://data/items.gd"
 GameState="*res://data/game_state.gd"
 Npcs="*res://data/npcs.gd"
 Audio="*res://systems/audio.gd"
-Ads="*res://systems/ads.gd"
 
 [display]
 

@@ -1,19 +1,13 @@
 extends Node
 ## Persistent game state. Save/load to user://save.json.
 
-signal steam_changed(value: int)
 signal invention_discovered(id: StringName)
 signal quest_completed(npc_id: StringName)
 signal board_changed
 
 const SAVE_PATH := "user://save.json"
-const STEAM_MAX := 30
-const STEAM_REGEN_SECONDS := 120  # 1 per 2 min
 const BOARD_W := 4
 const BOARD_H := 4
-
-var steam: int = STEAM_MAX
-var last_regen_unix: int = 0
 
 # Board: BOARD_H rows of BOARD_W cells; each cell is StringName ("") or item id
 var board: Array = []
@@ -39,13 +33,6 @@ var current_level: int = 0  # the level the player is actively working on
 func _ready() -> void:
 	_init_board()
 	load_game()
-	_regen_tick()
-	# Periodically regen steam
-	var t := Timer.new()
-	t.wait_time = 1.0
-	t.autostart = true
-	t.timeout.connect(_regen_tick)
-	add_child(t)
 
 func _init_board() -> void:
 	board.clear()
@@ -82,30 +69,6 @@ func push_chute(id: StringName) -> bool:
 	chute_queue.append(id)
 	return true
 
-func spend_steam(amount: int = 1) -> bool:
-	if steam < amount: return false
-	steam -= amount
-	steam_changed.emit(steam)
-	return true
-
-func add_steam(amount: int) -> void:
-	steam = min(STEAM_MAX, steam + amount) if amount > 0 else steam
-	# Energy purchases via IAP can exceed max — that's post-MVP. Cap at max for now.
-	steam_changed.emit(steam)
-
-func _regen_tick() -> void:
-	var now := int(Time.get_unix_time_from_system())
-	if last_regen_unix == 0:
-		last_regen_unix = now; return
-	if steam >= STEAM_MAX:
-		last_regen_unix = now; return
-	var elapsed := now - last_regen_unix
-	var gained := elapsed / STEAM_REGEN_SECONDS
-	if gained <= 0: return
-	steam = min(STEAM_MAX, steam + gained)
-	last_regen_unix += gained * STEAM_REGEN_SECONDS
-	steam_changed.emit(steam)
-
 func discover(id: StringName) -> bool:
 	if discovered.has(id): return false
 	discovered[id] = true
@@ -127,8 +90,6 @@ func set_quest_status(npc_id: StringName, status: String) -> void:
 
 func save_game() -> void:
 	var data := {
-		"steam": steam,
-		"last_regen": last_regen_unix,
 		"board": _board_to_strings(),
 		"discovered": discovered.keys().map(func(k): return String(k)),
 		"quests": _quests_to_strings(),
@@ -148,8 +109,6 @@ func load_game() -> void:
 	if f == null: return
 	var parsed = JSON.parse_string(f.get_as_text())
 	if typeof(parsed) != TYPE_DICTIONARY: return
-	steam = int(parsed.get("steam", STEAM_MAX))
-	last_regen_unix = int(parsed.get("last_regen", 0))
 	var b = parsed.get("board", null)
 	if b is Array and b.size() == BOARD_H:
 		for y in BOARD_H:
@@ -212,8 +171,6 @@ func seed_starter_hand() -> void:
 			try_place_from_chute()
 
 func reset() -> void:
-	steam = STEAM_MAX
-	last_regen_unix = int(Time.get_unix_time_from_system())
 	_init_board()
 	discovered.clear()
 	quests.clear()
@@ -224,4 +181,3 @@ func reset() -> void:
 	# tutorial_seen left alone — replaying the tutorial is annoying.
 	save_game()
 	board_changed.emit()
-	steam_changed.emit(steam)

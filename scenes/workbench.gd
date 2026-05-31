@@ -59,9 +59,9 @@ const RECYCLE_CELL_PROTECT_S := 8.0
 # not the empty space next to it. _recycle_rect is the full panel hit area.
 var _recycle_icon_rect: Rect2 = Rect2()
 
-# Recycle target — drag any non-junk item onto this to convert it into Steam.
-# Replaces long-press-delete as the primary "I'm stuck" escape, and turns dead
-# duplicate inventions into useful currency. Long-press still works as fallback.
+# Recycle target — drag any item onto this to clear its slot and free a space.
+# The primary "I'm stuck" escape (replaces long-press-delete; long-press still
+# works as a fallback). Clearing a dead duplicate frees the board to flow again.
 var _recycle_panel: PanelContainer
 var _recycle_label: Label
 var _recycle_rect: Rect2 = Rect2()
@@ -704,7 +704,7 @@ func _build_ui() -> void:
 	add_child(_toast_timer)
 
 	# Recycle panel — sits below the board next to the refill button.
-	# Drag any item onto it to scrap for Steam. Mouse-filter IGNORE so it
+	# Drag any item onto it to clear its slot. Mouse-filter IGNORE so it
 	# never blocks board input; hit-testing is manual via _recycle_rect.
 	# Recycle zone is drawn entirely in _draw() — bin icon + text.
 	# The panel is invisible; it only exists for layout sizing / _recycle_rect.
@@ -2053,5 +2053,4 @@ func _deliver() -> void:
 	GameState.set_quest_status(active_quest_npc, "done")
 	GameState.save_game()
 	Audio.play_sfx("deliver")
-	Ads.show_interstitial()
 	go_village.emit()
