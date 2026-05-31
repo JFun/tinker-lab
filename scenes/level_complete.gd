@@ -84,9 +84,10 @@ func _ready() -> void:
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(name_lbl)
 
-	# Single clear CTA: continue straight into the next level (the workbench
-	# crossfades to a fresh board). The village hub remains reachable any time via
-	# the bottom tab, so we don't clutter this celebration with a second button.
+	# Primary CTA: continue straight into the next level (the workbench crossfades
+	# to a fresh board). A subordinate "back to village" link is added below as a
+	# low-emphasis escape hatch, since this full-screen modal otherwise covers the
+	# bottom tab bar and would hard-force the player forward.
 	if level_idx + 1 < Items.LEVELS.size():
 		var next_lvl: Dictionary = Items.LEVELS[level_idx + 1]
 		var preview := Label.new()
@@ -104,6 +105,21 @@ func _ready() -> void:
 			advance_to_next.emit()
 			queue_free())
 		v.add_child(go_next)
+
+		# Subtle, deliberately-subordinate escape hatch. The modal covers the whole
+		# screen (the bottom tab bar is unreachable while it's up), so without this
+		# the player is hard-forced into the next level. Kept low-emphasis — flat,
+		# muted, small — so it never competes with the gold "Next Level" CTA.
+		var stay := Button.new()
+		stay.text = "Not now — back to village"
+		stay.flat = true
+		stay.add_theme_font_size_override("font_size", 15)
+		stay.add_theme_color_override("font_color", Color(0.78, 0.72, 0.58))
+		stay.add_theme_color_override("font_hover_color", Color(0.95, 0.90, 0.75))
+		stay.pressed.connect(func():
+			return_to_village.emit()
+			queue_free())
+		v.add_child(stay)
 	else:
 		# Defensive — the all-inventions finale normally pre-empts this modal, so
 		# this branch shouldn't show in practice. Fall back to the village hub.
