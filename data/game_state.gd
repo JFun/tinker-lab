@@ -22,9 +22,6 @@ var quests: Dictionary = {}
 var chute_queue: Array = []  # of StringName
 const CHUTE_MAX := 3
 
-# Starting-hand size: pairs of each junk dropped when a level begins.
-const STARTER_PAIRS_PER_JUNK := 2
-
 var tutorial_seen: bool = false
 var workshop_complete_seen: bool = false  # gates the one-time "all inventions" celebration
 var levels_seen: Dictionary = {}  # level index -> true, gates per-level completion toasts
@@ -162,13 +159,24 @@ func advance_to_level(idx: int) -> void:
 	save_game()
 
 func seed_starter_hand() -> void:
-	# Drop pairs of each junk in the current level's pool, placing immediately so
-	# the board fills (chute never overflows since CHUTE_MAX is small).
-	var junks: Array = Items.junks_for_level(current_level)
-	for j in junks:
-		for _i in STARTER_PAIRS_PER_JUNK:
-			push_chute(j)
-			try_place_from_chute()
+	# Fill the WHOLE board with mergeable pairs drawn from the current level's junk
+	# pool, so a fresh level lands on a full, ready-to-merge board (8 pairs across
+	# the 16 cells) rather than a half-empty one. Every placed junk gets its twin,
+	# so there's always a merge available — a packed board can't soft-lock.
+	# (On 4–8-junk levels every type appears; on the 10-junk levels only 8 fit, so
+	# we shuffle to vary which two are held back for the chute to introduce later.)
+	var junks: Array = Items.junks_for_level(current_level).duplicate()
+	if junks.is_empty(): return
+	junks.shuffle()
+	var ji: int = 0
+	while true:
+		var a := find_empty_cell()
+		if a.x < 0: break
+		set_cell(a.x, a.y, junks[ji % junks.size()])
+		var b := find_empty_cell()
+		if b.x < 0: break  # odd cell left over (won't happen on a 16-cell board)
+		set_cell(b.x, b.y, junks[ji % junks.size()])
+		ji += 1
 
 func reset() -> void:
 	_init_board()
