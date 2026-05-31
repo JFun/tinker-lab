@@ -99,7 +99,7 @@ func _ready() -> void:
 		var go_next := Button.new()
 		go_next.text = "Next Level  →"
 		go_next.add_theme_font_size_override("font_size", 22)
-		go_next.custom_minimum_size = Vector2(0, 64)
+		go_next.custom_minimum_size = Vector2(0, 80)
 		go_next.pressed.connect(func():
 			advance_to_next.emit()
 			queue_free())
