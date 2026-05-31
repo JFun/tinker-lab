@@ -703,7 +703,7 @@ func _build_ui() -> void:
 		_refresh_quest_ui())
 	add_child(_toast_timer)
 
-	# Recycle panel — sits below the board next to the refill button.
+	# Recycle panel — sits below the board, above the discoveries strip.
 	# Drag any item onto it to clear its slot. Mouse-filter IGNORE so it
 	# never blocks board input; hit-testing is manual via _recycle_rect.
 	# Recycle zone is drawn entirely in _draw() — bin icon + text.
