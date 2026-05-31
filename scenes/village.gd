@@ -324,6 +324,16 @@ func _build_more_sheet() -> Control:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(title)
 
+	# Sound on/off toggle. Text + color cue rather than 🔊/🔇 (those glyphs are
+	# tofu on iOS); flips between a green "On" and a muted-grey "Off".
+	var sound_btn := _make_sheet_button("", 18)
+	_update_sound_btn(sound_btn)
+	vb.add_child(sound_btn)
+	sound_btn.pressed.connect(func():
+		Audio.set_muted(not GameState.muted)
+		Audio.play_sfx("place")  # audible confirm when turning sound back ON
+		_update_sound_btn(sound_btn))
+
 	var reset_btn := _make_sheet_button("↺  Reset Game", 18)
 	reset_btn.add_theme_color_override("font_color", Color(1.0, 0.75, 0.45))
 	vb.add_child(reset_btn)
@@ -334,6 +344,14 @@ func _build_more_sheet() -> Control:
 	close_btn.pressed.connect(func(): sheet.queue_free())
 
 	return sheet
+
+func _update_sound_btn(btn: Button) -> void:
+	if GameState.muted:
+		btn.text = "Sound:  Off"
+		btn.add_theme_color_override("font_color", Color(0.70, 0.66, 0.58))
+	else:
+		btn.text = "Sound:  On"
+		btn.add_theme_color_override("font_color", Color(0.55, 0.90, 0.55))
 
 func _make_sheet_button(text: String, font_size: int) -> Button:
 	var b := Button.new()

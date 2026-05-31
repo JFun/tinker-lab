@@ -15,12 +15,25 @@ func _ready() -> void:
 	_clips["discover"] = _make_clip([523.25, 659.25, 783.99, 1046.50], 0.55, "decay")  # C-E-G-C arpeggio
 	_clips["deliver"]  = _make_clip([392.0, 523.25, 659.25], 0.40, "decay")   # G-C-E triumph
 	_clips["nope"]     = _make_clip([196.0, 165.0], 0.18, "decay")            # low buzz
+	# Apply the persisted mute preference. GameState autoloads BEFORE Audio (see
+	# project.godot order) and loads the save in its _ready, so GameState.muted is
+	# already correct here.
+	AudioServer.set_bus_mute(0, GameState.muted)  # bus 0 = Master
 
 func play_sfx(name: String) -> void:
+	if GameState.muted: return
 	var clip = _clips.get(name)
 	if clip == null: return
 	_player.stream = clip
 	_player.play()
+
+func set_muted(m: bool) -> void:
+	GameState.muted = m
+	GameState.save_game()
+	AudioServer.set_bus_mute(0, m)  # bus 0 = Master
+
+func is_muted() -> bool:
+	return GameState.muted
 
 func play_bgm(_track: String) -> void:
 	pass  # real composed BGM is post-MVP

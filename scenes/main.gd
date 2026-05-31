@@ -76,7 +76,7 @@ func _screenshot_then_quit() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--shoot="):
 			only = a.substr(8)
-	var shots := ["village", "workbench", "workbench_drag", "workbench_hint", "workbench_hint_full", "workbench_recycle", "book", "book_partial", "book_targeted", "tutorial", "glyph_audit", "level_complete", "workshop_complete"]
+	var shots := ["village", "settings", "workbench", "workbench_drag", "workbench_hint", "workbench_hint_full", "workbench_recycle", "book", "book_partial", "book_targeted", "tutorial", "glyph_audit", "level_complete", "workshop_complete"]
 	if only != "":
 		shots = [only]
 	for which in shots:
@@ -88,7 +88,7 @@ func _screenshot_then_quit() -> void:
 		var scene: Node
 		if which == "glyph_audit":
 			scene = _build_glyph_audit_scene()
-		elif which == "village" or which.begins_with("book") or which == "tutorial" or which == "workshop_complete":
+		elif which == "village" or which == "settings" or which.begins_with("book") or which == "tutorial" or which == "workshop_complete":
 			scene = VILLAGE.instantiate()
 		elif which == "level_complete":
 			scene = WORKBENCH.instantiate()
@@ -214,6 +214,11 @@ func _screenshot_then_quit() -> void:
 				book.highlight_id = &"spotlight"
 			scene.add_child(book)
 			for i in 6: await get_tree().process_frame
+		if which == "settings":
+			# Open the More/Settings sheet so we can verify the Sound toggle.
+			if scene.has_method("_open_more"):
+				scene._open_more()
+			for i in 4: await get_tree().process_frame
 		if which == "tutorial":
 			var tut := preload("res://scenes/tutorial.tscn").instantiate()
 			scene.add_child(tut)

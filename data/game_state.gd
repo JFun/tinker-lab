@@ -23,6 +23,7 @@ var chute_queue: Array = []  # of StringName
 const CHUTE_MAX := 3
 
 var tutorial_seen: bool = false
+var muted: bool = false  # global audio mute (Settings toggle); silences SFX via Master bus
 var workshop_complete_seen: bool = false  # gates the one-time "all inventions" celebration
 var levels_seen: Dictionary = {}  # level index -> true, gates per-level completion toasts
 var current_level: int = 0  # the level the player is actively working on
@@ -92,6 +93,7 @@ func save_game() -> void:
 		"quests": _quests_to_strings(),
 		"chute": chute_queue.map(func(k): return String(k)),
 		"tutorial_seen": tutorial_seen,
+		"muted": muted,
 		"workshop_complete_seen": workshop_complete_seen,
 		"levels_seen": levels_seen.keys().map(func(k): return int(k)),
 		"current_level": current_level,
@@ -123,6 +125,7 @@ func load_game() -> void:
 	for s in parsed.get("chute", []):
 		chute_queue.append(StringName(str(s)))
 	tutorial_seen = bool(parsed.get("tutorial_seen", false))
+	muted = bool(parsed.get("muted", false))
 	workshop_complete_seen = bool(parsed.get("workshop_complete_seen", false))
 	levels_seen.clear()
 	for k in parsed.get("levels_seen", []):
