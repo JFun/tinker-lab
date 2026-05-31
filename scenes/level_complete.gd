@@ -90,27 +90,42 @@ func _ready() -> void:
 	# bottom tab bar and would hard-force the player forward.
 	if level_idx + 1 < Items.LEVELS.size():
 		var next_lvl: Dictionary = Items.LEVELS[level_idx + 1]
-		# Names the destination WITHOUT repeating "Next" (the button below carries
-		# the "Next" verb) — avoids the "Next ... Next Level" redundancy.
-		var preview := Label.new()
-		preview.text = "Level %d — %s" % [level_idx + 2, next_lvl.name]
-		preview.add_theme_font_size_override("font_size", 18)
-		preview.add_theme_color_override("font_color", Color(0.80, 1.0, 0.65))
-		preview.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		v.add_child(preview)
-
-		# Primary CTA — the hero. Warm gold-bordered fill so it clearly out-ranks
-		# the secondary button below.
+		# Primary CTA — the hero. ONE button (no separate preview label above it):
+		# a bold "Next Level →" verb line with the destination name as a smaller
+		# second line underneath, so it's a single tap-target carrying full info.
+		# Warm gold-bordered fill so it clearly out-ranks the secondary button below.
 		var go_next := Button.new()
-		go_next.text = "Next Level  →"
-		go_next.add_theme_font_size_override("font_size", 22)
-		go_next.add_theme_color_override("font_color", Color(1.0, 0.92, 0.72))
-		go_next.custom_minimum_size = Vector2(0, 80)
+		go_next.custom_minimum_size = Vector2(0, 84)
 		_style_button(go_next, Color(0.40, 0.30, 0.14), Color(1.0, 0.78, 0.30), 2)
 		go_next.pressed.connect(func():
 			advance_to_next.emit()
 			queue_free())
 		v.add_child(go_next)
+
+		# Two-line label stack drawn ON TOP of the button. Mouse-ignore so taps fall
+		# through to the Button beneath. Full-rect + centered so it sits in the button.
+		var go_box := VBoxContainer.new()
+		go_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		go_box.alignment = BoxContainer.ALIGNMENT_CENTER
+		go_box.add_theme_constant_override("separation", 2)
+		go_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		go_next.add_child(go_box)
+
+		var go_verb := Label.new()
+		go_verb.text = "Next Level  →"
+		go_verb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		go_verb.add_theme_font_size_override("font_size", 22)
+		go_verb.add_theme_color_override("font_color", Color(1.0, 0.92, 0.72))
+		go_verb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		go_box.add_child(go_verb)
+
+		var go_dest := Label.new()
+		go_dest.text = "Level %d — %s" % [level_idx + 2, next_lvl.name]
+		go_dest.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		go_dest.add_theme_font_size_override("font_size", 14)
+		go_dest.add_theme_color_override("font_color", Color(0.80, 1.0, 0.65))
+		go_dest.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		go_box.add_child(go_dest)
 
 		# Secondary action — a real button now (per Qi), but deliberately subdued:
 		# dark fill, no accent border, shorter, muted text. Clearly subordinate to
