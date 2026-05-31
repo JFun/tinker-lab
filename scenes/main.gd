@@ -72,10 +72,16 @@ func _screenshot_then_quit() -> void:
 		DirAccess.remove_absolute("user://save.json")
 	GameState.tutorial_seen = true
 	# Filter to a specific scene if `--shoot=name` was passed; else do all.
+	# Optional `--shoot-size=WxH` renders at an App Store device aspect ratio
+	# (the game stretches via canvas_items+expand, so it fills the window).
 	var only := ""
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--shoot="):
 			only = a.substr(8)
+		if a.begins_with("--shoot-size="):
+			var dims := a.substr(13).split("x")
+			if dims.size() == 2:
+				DisplayServer.window_set_size(Vector2i(int(dims[0]), int(dims[1])))
 	var shots := ["village", "settings", "workbench", "workbench_drag", "workbench_hint", "workbench_hint_full", "workbench_recycle", "book", "book_partial", "book_targeted", "tutorial", "glyph_audit", "level_complete", "workshop_complete"]
 	if only != "":
 		shots = [only]

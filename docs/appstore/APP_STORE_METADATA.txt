@@ -1,0 +1,131 @@
+TINKER LAB - APP STORE CONNECT SUBMISSION SHEET
+================================================
+Copy each field into App Store Connect. Plain ASCII only (Apple's description
+field rejects box-drawing / em-dashes / markdown). Last updated 2026-05-31.
+
+------------------------------------------------------------------------------
+APP INFORMATION
+------------------------------------------------------------------------------
+Name:                Tinker Lab
+Subtitle (<=30):     Merge junk into inventions
+Bundle ID:           com.jfun.tinkerlab
+Primary category:    Games
+Secondary category:  (Puzzle)  ->  In the Games sub-genres, pick Puzzle + Casual
+Age rating:          4+  (no objectionable content; gentle merge puzzle)
+Price:               Free
+Copyright:           2026 Tinker Lab
+
+Support URL:         https://jfun.github.io/tinker-lab/support.html
+Marketing URL:       https://jfun.github.io/tinker-lab/support.html   (optional)
+Privacy Policy URL:  https://jfun.github.io/tinker-lab/privacy.html
+
+------------------------------------------------------------------------------
+VERSION
+------------------------------------------------------------------------------
+Version (marketing): 0.1.0
+Build:               1
+(Bump CURRENT_PROJECT_VERSION before each TestFlight/App Store upload.)
+
+------------------------------------------------------------------------------
+PROMOTIONAL TEXT (<=170 chars, editable without a new build)
+------------------------------------------------------------------------------
+Drag, match, and merge your way from a pile of scrap to a town full of clever
+inventions. No ads, no timers, no sign-in - just cozy tinkering.
+
+------------------------------------------------------------------------------
+DESCRIPTION
+------------------------------------------------------------------------------
+Tinker Lab is a cozy merge puzzle about rebuilding a steampunk village one
+clever invention at a time.
+
+The town's workshops have fallen into disrepair, and the villagers need your
+help. On your workbench, drag two matching pieces together to merge them into
+something better: scrap becomes parts, parts become gadgets, and gadgets become
+the inventions each villager is waiting for. Finish a villager's request and
+watch their workshop come back to life.
+
+WHAT YOU'LL DO
+- Merge matching junk into 25 inventions across 5 themed workshops.
+- Help five villagers - the Lamplighter, the Mayor, the Professor, the Baker,
+  and the Postmaster - restore their corner of town.
+- Fill out your Recipe Book and discover how every gadget is built.
+- Play at your own pace. No timers, no energy meters, no pressure.
+
+WHY YOU'LL LIKE IT
+- Relaxing, satisfying merge gameplay you can pick up anytime.
+- No ads. No in-app purchases. No accounts or sign-in.
+- Fully playable offline. Your progress is saved on your device.
+- Designed for iPhone and iPad.
+
+Pull up a stool and start tinkering.
+
+------------------------------------------------------------------------------
+KEYWORDS (<=100 chars, comma separated, no spaces after commas to save room)
+------------------------------------------------------------------------------
+merge,puzzle,relax,cozy,invention,steampunk,match,craft,casual,offline,brain,idle,village
+
+------------------------------------------------------------------------------
+WHAT'S NEW IN THIS VERSION (release notes)
+------------------------------------------------------------------------------
+First release. Merge your way through 5 workshops and 25 inventions. Thanks for
+playing Tinker Lab!
+
+------------------------------------------------------------------------------
+APP PRIVACY QUESTIONNAIRE  (App Store Connect -> App Privacy)
+------------------------------------------------------------------------------
+Privacy Policy URL: https://jfun.github.io/tinker-lab/privacy.html
+
+Data collected -> check exactly these, nothing else:
+
+1) Usage Data -> Product Interaction
+     Linked to the user?      No
+     Used for tracking?       No
+     Purpose:                 Analytics
+
+2) Identifiers -> Device ID
+     (Firebase collects IDFV + Installation ID; declare this so the
+      questionnaire matches the privacy policy.)
+     Linked to the user?      No
+     Used for tracking?       No
+     Purpose:                 Analytics
+
+Do NOT check: Advertising Data, Crash Data, Performance Data, Location,
+Contacts, Financial Info, Health, Contact Info, Browsing History, Search History.
+(No ad SDKs, no Crashlytics, no Google Signals, no data brokers.)
+
+Tracking: NO. The app does not meet Apple's definition of tracking, so there is
+NO App Tracking Transparency prompt. If a reviewer flags "tracks but no ATT
+prompt" (5.1.2(i)), it means a box was set to "Used for tracking = Yes" by
+mistake - set all to No and reply that only first-party Product Interaction
+analytics is collected via Firebase, not linked to identity, no ad SDKs/Google
+Signals/data brokers, so no ATT prompt is required.
+
+------------------------------------------------------------------------------
+EXPORT COMPLIANCE
+------------------------------------------------------------------------------
+Info.plist already sets ITSAppUsesNonExemptEncryption = false, so the
+"uses encryption" question is auto-answered No. No further action.
+
+------------------------------------------------------------------------------
+SCREENSHOTS (already rendered, in this folder)
+------------------------------------------------------------------------------
+iPhone 6.5" slot (1242 x 2688) -> docs/appstore/iphone6.5/*.png
+iPad 13"   slot (2048 x 2732) -> docs/appstore/ipad13/*.png
+Four each: village, workbench, book_partial, level_complete (>=3 required).
+Marketing icon (1024, no alpha) -> docs/appstore/marketing-1024.png
+
+------------------------------------------------------------------------------
+REVIEW NOTES (paste into the "Notes" field; covers the common 2.1 follow-up)
+------------------------------------------------------------------------------
+1. Purpose & audience: Tinker Lab is a single-player cozy merge puzzle for a
+   general audience. Players merge matching pieces to build inventions and
+   restore a small village.
+2. How to use: Open the app (no login, accounts, or in-app purchases). Tap a
+   workshop, then drag two matching pieces together on the workbench to merge
+   them. Complete each villager's requested inventions to finish a level.
+3. Devices tested: iPhone 13 Pro on iOS 18.x.
+4. External services: Firebase Analytics (Google) - anonymous gameplay events
+   only. No backend, authentication, payment, or AI services.
+5. Regional differences: None. English-only UI; functions the same everywhere.
+6. Regulated industry / protected material: None.
+7. Demo account: Not applicable - no accounts.
