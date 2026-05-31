@@ -1,0 +1,12 @@
+# Godot 4 editor cache & generated import data
+.godot/
+
+# Build outputs: iOS exports, crash logs, UI screenshots, .pck/.ipa
+/build/
+
+# Local Claude Code state (keep shared .claude/settings.json tracked)
+.claude/settings.local.json
+.claude/worktrees/
+
+# macOS
+.DS_Store

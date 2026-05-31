@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://b1tllevelcomplete0"]
+
+[ext_resource type="Script" path="res://scenes/level_complete.gd" id="1"]
+
+[node name="LevelComplete" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
