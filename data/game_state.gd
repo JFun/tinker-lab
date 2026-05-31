@@ -28,6 +28,9 @@ var quests: Dictionary = {}
 var chute_queue: Array = []  # of StringName
 const CHUTE_MAX := 3
 
+# Starting-hand size: pairs of each junk dropped when a level begins.
+const STARTER_PAIRS_PER_JUNK := 2
+
 var tutorial_seen: bool = false
 var workshop_complete_seen: bool = false  # gates the one-time "all inventions" celebration
 var levels_seen: Dictionary = {}  # level index -> true, gates per-level completion toasts
@@ -191,7 +194,22 @@ func clear_board() -> void:
 func advance_to_level(idx: int) -> void:
 	current_level = idx
 	clear_board()
+	# Seed the starting hand HERE (not only in workbench._ready) so a level switch
+	# lands on a full, ready-to-merge board. The workbench re-instantiates behind a
+	# crossfade, and the outgoing board's chute timer could otherwise dirty the
+	# freshly-cleared board before the new _ready runs — making it skip seeding and
+	# leaving the player waiting on the chute drip.
+	seed_starter_hand()
 	save_game()
+
+func seed_starter_hand() -> void:
+	# Drop pairs of each junk in the current level's pool, placing immediately so
+	# the board fills (chute never overflows since CHUTE_MAX is small).
+	var junks: Array = Items.junks_for_level(current_level)
+	for j in junks:
+		for _i in STARTER_PAIRS_PER_JUNK:
+			push_chute(j)
+			try_place_from_chute()
 
 func reset() -> void:
 	steam = STEAM_MAX

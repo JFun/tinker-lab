@@ -9,9 +9,6 @@ signal go_workbench(npc_id: StringName)  # main re-instantiates the board (cross
 const UIIcon := preload("res://scenes/ui_icon.gd")
 const CELL_PAD := 4.0
 const CHUTE_INTERVAL := 2.0  # seconds between auto-spawns (tight: keep the board flowing)
-# Per-level starter hand size — pairs of each of the level's junks so the
-# player can start merging immediately within the level's pool.
-const STARTER_PAIRS_PER_JUNK := 2
 
 var _cell_size: float = 64.0
 var _board_rect: Rect2 = Rect2()
@@ -1789,13 +1786,10 @@ func _pick_helpful_junk() -> StringName:
 	return pool[randi() % pool.size()]
 
 func _seed_starter_hand() -> void:
-	# Drop pairs of each junk in the current level's pool so the player can
-	# immediately start merging within the level's scope.
-	var junks: Array = Items.junks_for_level(GameState.current_level)
-	for j in junks:
-		for _i in STARTER_PAIRS_PER_JUNK:
-			GameState.push_chute(j)
-			GameState.try_place_from_chute()
+	# Delegate to GameState so a fresh-board seed is identical whether it happens
+	# on first _ready or on a level-advance (advance_to_level seeds there directly,
+	# beating the outgoing board's chute timer during the crossfade).
+	GameState.seed_starter_hand()
 
 # Returns true if the upgrade-chain ending at `id` (or `id` itself, if it's
 # already a Part) is an ingredient in any undiscovered cross-combine.
