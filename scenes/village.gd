@@ -310,11 +310,11 @@ func _build_more_sheet() -> Control:
 	card_sb.content_margin_left = 24; card_sb.content_margin_right = 24
 	card_sb.content_margin_top = 24; card_sb.content_margin_bottom = 24
 	card.add_theme_stylebox_override("panel", card_sb)
-	card.custom_minimum_size = Vector2(380, 0)
+	card.custom_minimum_size = Vector2(440, 0)
 	centerer.add_child(card)
 
 	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 14)
+	vb.add_theme_constant_override("separation", 18)
 	card.add_child(vb)
 
 	var title := Label.new()
@@ -326,7 +326,7 @@ func _build_more_sheet() -> Control:
 
 	# Sound on/off toggle. Text + color cue rather than 🔊/🔇 (those glyphs are
 	# tofu on iOS); flips between a green "On" and a muted-grey "Off".
-	var sound_btn := _make_sheet_button("", 18)
+	var sound_btn := _make_sheet_button("", 20)
 	_update_sound_btn(sound_btn)
 	vb.add_child(sound_btn)
 	sound_btn.pressed.connect(func():
@@ -334,12 +334,12 @@ func _build_more_sheet() -> Control:
 		Audio.play_sfx("place")  # audible confirm when turning sound back ON
 		_update_sound_btn(sound_btn))
 
-	var reset_btn := _make_sheet_button("↺  Reset Game", 18)
+	var reset_btn := _make_sheet_button("↺  Reset Game", 20)
 	reset_btn.add_theme_color_override("font_color", Color(1.0, 0.75, 0.45))
 	vb.add_child(reset_btn)
 	reset_btn.pressed.connect(func(): _confirm_reset(reset_btn, sheet))
 
-	var close_btn := _make_sheet_button("Close", 16)
+	var close_btn := _make_sheet_button("Close", 20)
 	vb.add_child(close_btn)
 	close_btn.pressed.connect(func(): sheet.queue_free())
 
@@ -358,7 +358,7 @@ func _make_sheet_button(text: String, font_size: int) -> Button:
 	b.text = text
 	b.add_theme_font_size_override("font_size", font_size)
 	b.add_theme_color_override("font_color", TEXT)
-	b.custom_minimum_size = Vector2(0, 52)
+	b.custom_minimum_size = Vector2(0, 64)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.26, 0.20, 0.12)
 	sb.set_border_width_all(0)
