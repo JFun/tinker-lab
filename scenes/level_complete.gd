@@ -90,32 +90,37 @@ func _ready() -> void:
 	# bottom tab bar and would hard-force the player forward.
 	if level_idx + 1 < Items.LEVELS.size():
 		var next_lvl: Dictionary = Items.LEVELS[level_idx + 1]
+		# Names the destination WITHOUT repeating "Next" (the button below carries
+		# the "Next" verb) — avoids the "Next ... Next Level" redundancy.
 		var preview := Label.new()
-		preview.text = "Next  →  Level %d: %s" % [level_idx + 2, next_lvl.name]
+		preview.text = "Level %d — %s" % [level_idx + 2, next_lvl.name]
 		preview.add_theme_font_size_override("font_size", 18)
 		preview.add_theme_color_override("font_color", Color(0.80, 1.0, 0.65))
 		preview.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		v.add_child(preview)
 
+		# Primary CTA — the hero. Warm gold-bordered fill so it clearly out-ranks
+		# the secondary button below.
 		var go_next := Button.new()
 		go_next.text = "Next Level  →"
 		go_next.add_theme_font_size_override("font_size", 22)
+		go_next.add_theme_color_override("font_color", Color(1.0, 0.92, 0.72))
 		go_next.custom_minimum_size = Vector2(0, 80)
+		_style_button(go_next, Color(0.40, 0.30, 0.14), Color(1.0, 0.78, 0.30), 2)
 		go_next.pressed.connect(func():
 			advance_to_next.emit()
 			queue_free())
 		v.add_child(go_next)
 
-		# Subtle, deliberately-subordinate escape hatch. The modal covers the whole
-		# screen (the bottom tab bar is unreachable while it's up), so without this
-		# the player is hard-forced into the next level. Kept low-emphasis — flat,
-		# muted, small — so it never competes with the gold "Next Level" CTA.
+		# Secondary action — a real button now (per Qi), but deliberately subdued:
+		# dark fill, no accent border, shorter, muted text. Clearly subordinate to
+		# the gold primary, so it's NOT the rejected "two equal buttons" layout.
 		var stay := Button.new()
 		stay.text = "Not now — back to village"
-		stay.flat = true
-		stay.add_theme_font_size_override("font_size", 15)
-		stay.add_theme_color_override("font_color", Color(0.78, 0.72, 0.58))
-		stay.add_theme_color_override("font_hover_color", Color(0.95, 0.90, 0.75))
+		stay.add_theme_font_size_override("font_size", 16)
+		stay.add_theme_color_override("font_color", Color(0.82, 0.76, 0.62))
+		stay.custom_minimum_size = Vector2(0, 52)
+		_style_button(stay, Color(0.24, 0.19, 0.13), Color(0, 0, 0, 0), 0)
 		stay.pressed.connect(func():
 			return_to_village.emit()
 			queue_free())
@@ -126,8 +131,26 @@ func _ready() -> void:
 		var back := Button.new()
 		back.text = "Back to Village  →"
 		back.add_theme_font_size_override("font_size", 20)
-		back.custom_minimum_size = Vector2(0, 56)
+		back.add_theme_color_override("font_color", Color(1.0, 0.92, 0.72))
+		back.custom_minimum_size = Vector2(0, 64)
+		_style_button(back, Color(0.40, 0.30, 0.14), Color(1.0, 0.78, 0.30), 2)
 		back.pressed.connect(func():
 			return_to_village.emit()
 			queue_free())
 		v.add_child(back)
+
+func _style_button(btn: Button, bg: Color, border: Color, border_w: int) -> void:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = bg
+	sb.set_corner_radius_all(10)
+	if border_w > 0:
+		sb.border_color = border
+		sb.set_border_width_all(border_w)
+	sb.content_margin_top = 10; sb.content_margin_bottom = 10
+	sb.content_margin_left = 16; sb.content_margin_right = 16
+	btn.add_theme_stylebox_override("normal", sb)
+	var hover := sb.duplicate() as StyleBoxFlat
+	hover.bg_color = bg.lightened(0.10)
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.add_theme_stylebox_override("pressed", hover)
+	btn.add_theme_stylebox_override("focus", sb)
