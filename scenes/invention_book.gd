@@ -32,16 +32,38 @@ func _ready() -> void:
 	v.add_theme_constant_override("separation", 6)
 	panel.add_child(v)
 
-	# Header row: title + close X
+	# Header row: title + progress badge + close X. The count gets its own
+	# green "pill" so players actually notice their tally (the tutorial points
+	# here for it) instead of it blending into the title text.
 	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 12)
 	v.add_child(header)
 	var title := Label.new()
-	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_font_size_override("font_size", 26)
 	title.add_theme_color_override("font_color", Color(1, 0.90, 0.55))
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var total := Items.all_inventions().size()
-	title.text = "Recipes  %d / %d" % [GameState.discovered.size(), total]
+	title.text = "Recipes"
 	header.add_child(title)
+
+	var total := Items.all_inventions().size()
+	var badge := PanelContainer.new()
+	var badge_sb := StyleBoxFlat.new()
+	badge_sb.bg_color = Color(0.40, 0.75, 0.35)
+	badge_sb.set_corner_radius_all(13)
+	badge_sb.content_margin_left = 12; badge_sb.content_margin_right = 12
+	badge_sb.content_margin_top = 3; badge_sb.content_margin_bottom = 3
+	badge.add_theme_stylebox_override("panel", badge_sb)
+	badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var count := Label.new()
+	count.add_theme_font_size_override("font_size", 22)
+	count.add_theme_color_override("font_color", Color(0.10, 0.08, 0.03))
+	count.text = "%d / %d" % [GameState.discovered.size(), total]
+	badge.add_child(count)
+	header.add_child(badge)
+
+	# Spacer pushes the close button to the far right.
+	var header_spacer := Control.new()
+	header_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(header_spacer)
 
 	var close := Button.new()
 	close.text = "✕"
