@@ -28,24 +28,26 @@ func _ready() -> void:
 	panel.add_theme_stylebox_override("panel", sb)
 
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 14)
+	v.add_theme_constant_override("separation", 18)
 	panel.add_child(v)
 
 	_add_title(v, "Welcome to the Workshop")
 
-	_add_step(v, "★", "GOAL: discover all 25 inventions (5 are Masterworks).\n"
+	# No manual line breaks — the body labels auto-wrap (WORD_SMART), so the text
+	# reflows cleanly at any font size.
+	_add_step(v, "★", "GOAL: discover all 25 inventions (5 are Masterworks). "
 		+ "The Recipes tab keeps your tally (\"Recipes 3 / 25\").")
-	_add_step(v, "1.", "Drag a SAME-COLOR pair together to upgrade.\n"
+	_add_step(v, "1.", "Drag a SAME-COLOR pair together to upgrade. "
 		+ "Junk → Crafted → Part (3 tiers to climb).")
-	_add_step(v, "2.", "Once you have two DIFFERENT parts, combine them\n"
+	_add_step(v, "2.", "Once you have two DIFFERENT parts, combine them "
 		+ "to INVENT (Fuel Tank + Boiler = Oven).")
-	_add_step(v, "3.", "While dragging: GREEN = will merge, CYAN = clear\n"
+	_add_step(v, "3.", "While dragging: GREEN = will merge, CYAN = clear "
 		+ "duplicate, BLUE = empty cell, RED = no recipe.")
-	_add_step(v, "4.", "Drag any item onto the recycle panel to clear its slot. If\n"
-		+ "you ever fully soft-lock, the chute auto-scraps for you — no dead ends.")
-	_add_step(v, "5.", "Tap the Deliver button when your invention is on the board,\n"
+	_add_step(v, "4.", "Drag any item onto the recycle panel to clear its slot. "
+		+ "If you ever fully soft-lock, the chute auto-scraps for you — no dead ends.")
+	_add_step(v, "5.", "Tap the Deliver button when your invention is on the board, "
 		+ "then watch the village light up.")
-	_add_step(v, "?", "STUCK ON A RECIPE? Tap Recipes below — every undiscovered\n"
+	_add_step(v, "?", "STUCK ON A RECIPE? Tap Recipes below — every undiscovered "
 		+ "invention shows its recipe (e.g. \"??? = Frame + Lantern\").")
 
 	# Single primary CTA. A first-time player hasn't placed a tile yet, so the
@@ -53,8 +55,8 @@ func _ready() -> void:
 	# bar, and called out in step "?") is one tap away whenever they get stuck.
 	var ok := Button.new()
 	ok.text = "Got it — let me tinker"
-	ok.add_theme_font_size_override("font_size", 20)
-	ok.custom_minimum_size = Vector2(0, 56)
+	ok.add_theme_font_size_override("font_size", 23)
+	ok.custom_minimum_size = Vector2(0, 62)
 	var cta := StyleBoxFlat.new()
 	cta.bg_color = Color(1.0, 0.78, 0.30)
 	cta.border_color = Color(1.0, 0.95, 0.55)
@@ -70,7 +72,7 @@ func _ready() -> void:
 func _add_title(parent: Node, text: String) -> void:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", 26)
+	l.add_theme_font_size_override("font_size", 30)
 	l.add_theme_color_override("font_color", Color(1, 0.92, 0.65))
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	parent.add_child(l)
@@ -81,13 +83,13 @@ func _add_step(parent: Node, num: String, body: String) -> void:
 	parent.add_child(h)
 	var n := Label.new()
 	n.text = num
-	n.add_theme_font_size_override("font_size", 24)
+	n.add_theme_font_size_override("font_size", 28)
 	n.add_theme_color_override("font_color", Color(1.0, 0.75, 0.30))
-	n.custom_minimum_size = Vector2(36, 0)
+	n.custom_minimum_size = Vector2(40, 0)
 	h.add_child(n)
 	var b := Label.new()
 	b.text = body
-	b.add_theme_font_size_override("font_size", 17)
+	b.add_theme_font_size_override("font_size", 21)
 	b.add_theme_color_override("font_color", Color(0.95, 0.90, 0.75))
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
