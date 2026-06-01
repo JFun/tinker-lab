@@ -1,5 +1,8 @@
 # Godot 4 editor cache & generated import data
 .godot/
+# Per-asset import sidecars Godot writes when it scans non-game PNGs (e.g. the
+# App Store screenshots under docs/) — editor cache, not app content.
+*.import
 
 # Build outputs: iOS exports, crash logs, UI screenshots, .pck/.ipa
 /build/
