@@ -56,7 +56,11 @@
       "Bash(xcodebuild *)",
       "Bash(mkdir -p *)",
       "Bash(cp \"$HOME/Library/Application Support/Godot/*)",
-      "Bash(APP_NAME=*)"
+      "Bash(APP_NAME=*)",
+      "Bash(sed -n *)",
+      "Bash(plutil -extract *)",
+      "Bash(plutil -p *)",
+      "Bash(security cms -D *)"
     ]
   }
 }

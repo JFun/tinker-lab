@@ -1,6 +1,7 @@
 extends Control
 ## First-run tutorial overlay. Dim background + a stack of clear steps + a
-## "Got it" dismiss button. Re-openable via the "?" button on the workbench.
+## single "let me tinker" button that dismisses it. Re-openable any time via
+## the "?" Help button on the workbench's bottom tab bar.
 
 func _ready() -> void:
 	anchor_right = 1.0; anchor_bottom = 1.0
@@ -33,9 +34,9 @@ func _ready() -> void:
 	_add_title(v, "Welcome to the Workshop")
 
 	_add_step(v, "★", "GOAL: discover all 25 inventions (5 are Masterworks).\n"
-		+ "The counter at the top-left shows your progress toward the end.")
+		+ "The Recipes tab keeps your tally (\"Recipes 3 / 25\").")
 	_add_step(v, "1.", "Drag a SAME-COLOR pair together to upgrade.\n"
-		+ "Junk → Component → Part (3 tiers of upgrades).")
+		+ "Junk → Crafted → Part (3 tiers to climb).")
 	_add_step(v, "2.", "Once you have two DIFFERENT parts, combine them\n"
 		+ "to INVENT (Fuel Tank + Boiler = Oven).")
 	_add_step(v, "3.", "While dragging: GREEN = will merge, CYAN = clear\n"
@@ -47,30 +48,22 @@ func _ready() -> void:
 	_add_step(v, "?", "STUCK ON A RECIPE? Tap Recipes below — every undiscovered\n"
 		+ "invention shows its recipe (e.g. \"??? = Frame + Lantern\").")
 
-	# Primary CTA: open the Book directly — this is the answer to "how do I
-	# invent X?", which is the #1 thing players Google.
-	var recipes_btn := Button.new()
-	recipes_btn.text = "Open Recipes"
-	recipes_btn.add_theme_font_size_override("font_size", 20)
-	recipes_btn.custom_minimum_size = Vector2(0, 56)
+	# Single primary CTA. A first-time player hasn't placed a tile yet, so the
+	# natural action is to start playing — the Recipes tab (always in the bottom
+	# bar, and called out in step "?") is one tap away whenever they get stuck.
+	var ok := Button.new()
+	ok.text = "Got it — let me tinker"
+	ok.add_theme_font_size_override("font_size", 20)
+	ok.custom_minimum_size = Vector2(0, 56)
 	var cta := StyleBoxFlat.new()
 	cta.bg_color = Color(1.0, 0.78, 0.30)
 	cta.border_color = Color(1.0, 0.95, 0.55)
 	cta.set_border_width_all(2)
 	cta.set_corner_radius_all(10)
-	recipes_btn.add_theme_stylebox_override("normal", cta)
-	recipes_btn.add_theme_stylebox_override("hover", cta)
-	recipes_btn.add_theme_stylebox_override("pressed", cta)
-	recipes_btn.add_theme_color_override("font_color", Color(0.12, 0.06, 0.02))
-	recipes_btn.pressed.connect(_open_recipes)
-	v.add_child(recipes_btn)
-
-	var ok := Button.new()
-	ok.text = "Got it — let me tinker"
-	ok.add_theme_font_size_override("font_size", 18)
-	ok.flat = true
-	ok.add_theme_color_override("font_color", Color(0.85, 0.78, 0.55))
-	ok.custom_minimum_size = Vector2(0, 44)
+	ok.add_theme_stylebox_override("normal", cta)
+	ok.add_theme_stylebox_override("hover", cta)
+	ok.add_theme_stylebox_override("pressed", cta)
+	ok.add_theme_color_override("font_color", Color(0.12, 0.06, 0.02))
 	ok.pressed.connect(_dismiss)
 	v.add_child(ok)
 
@@ -104,16 +97,6 @@ func _dismiss() -> void:
 	GameState.tutorial_seen = true
 	GameState.save_game()
 	queue_free()
-
-func _open_recipes() -> void:
-	# Hand off to the Book modal. Add it to our parent so it survives our
-	# queue_free below (children get freed with us).
-	GameState.tutorial_seen = true
-	GameState.save_game()
-	var parent := get_parent()
-	queue_free()
-	if parent:
-		parent.add_child(preload("res://scenes/invention_book.tscn").instantiate())
 
 func _swallow(_event: InputEvent) -> void:
 	pass  # block clicks from reaching scene below
