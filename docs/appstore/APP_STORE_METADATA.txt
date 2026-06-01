@@ -22,8 +22,8 @@ Privacy Policy URL:  https://jfun.github.io/tinker-lab/privacy.html
 ------------------------------------------------------------------------------
 VERSION
 ------------------------------------------------------------------------------
-Version (marketing): 0.1.0
-Build:               1
+Version (marketing): 1.0.0   (shown as "1.0" in App Store Connect)
+Build:               5
 (Bump CURRENT_PROJECT_VERSION before each TestFlight/App Store upload.)
 
 ------------------------------------------------------------------------------
