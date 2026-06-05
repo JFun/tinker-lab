@@ -6,7 +6,7 @@ field rejects box-drawing / em-dashes / markdown). Last updated 2026-05-31.
 ------------------------------------------------------------------------------
 APP INFORMATION
 ------------------------------------------------------------------------------
-Name:                Tinker Lab
+Name:                Tinker Lab: Merge Puzzle
 Subtitle (<=30):     Merge junk into inventions
 Bundle ID:           com.jfun.tinkerlab
 Primary category:    Games
@@ -62,13 +62,21 @@ Pull up a stool and start tinkering.
 ------------------------------------------------------------------------------
 KEYWORDS (<=100 chars, comma separated, no spaces after commas to save room)
 ------------------------------------------------------------------------------
-merge,puzzle,relax,cozy,invention,steampunk,match,craft,casual,offline,brain,idle,village
+relax,cozy,steampunk,match,craft,casual,offline,brain,idle,village,game,zen,build,town,gears
+(Dropped merge/puzzle/invention - now covered by the title "Tinker Lab: Merge
+Puzzle" + subtitle "...inventions"; Apple indexes title+subtitle+keywords as one
+pool, so repeating them here is wasted space. Freed room added game/zen/build/
+town/gears.)
 
 ------------------------------------------------------------------------------
 WHAT'S NEW IN THIS VERSION (release notes)
 ------------------------------------------------------------------------------
-First release. Merge your way through 5 workshops and 25 inventions. Thanks for
-playing Tinker Lab!
+Thanks for tinkering! This update adds a little more cozy:
+- Daily delivery crate: come back each day for a ready-made part to get you
+  going, with a streak bonus the longer you keep it up.
+- Faster, smoother startup with a new branded loading screen.
+- Tidier workshop layout on taller iPhones - no more empty space.
+- Smarter hints that follow what you are actually building.
 
 ------------------------------------------------------------------------------
 APP PRIVACY QUESTIONNAIRE  (App Store Connect -> App Privacy)
@@ -109,9 +117,14 @@ Info.plist already sets ITSAppUsesNonExemptEncryption = false, so the
 ------------------------------------------------------------------------------
 SCREENSHOTS (already rendered, in this folder)
 ------------------------------------------------------------------------------
-iPhone 6.5" slot (1242 x 2688) -> docs/appstore/iphone6.5/*.png
-iPad 13"   slot (2048 x 2732) -> docs/appstore/ipad13/*.png
-Four each: village, workbench, book_partial, level_complete (>=3 required).
+iPhone 6.5" slot (1242 x 2688) -> docs/appstore/screenshots/appstore_iphone65_*.png
+iPad 13"   slot (2048 x 2732) -> docs/appstore/screenshots/appstore_ipad13_*.png
+Five each (>=3 required), upload in this order:
+  1. workbench         (core merge gameplay)
+  2. workbench_delivery (daily delivery crate - the new 1.0.1 hook)
+  3. level_complete     (a villager's workshop restored)
+  4. book_partial       (the Recipe Book)
+  5. village            (the town overview)
 Marketing icon (1024, no alpha) -> docs/appstore/marketing-1024.png
 
 ------------------------------------------------------------------------------
