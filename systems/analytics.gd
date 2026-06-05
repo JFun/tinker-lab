@@ -32,6 +32,7 @@ var _user_id: String = ""
 var _session_id: String = ""
 var _enabled: bool = false
 var _disabled: bool = false  # tripped if the buffer file blows past the cap
+var _merged_this_session: bool = false  # gates the once-per-session first_merge
 
 func _ready() -> void:
 	_enabled = _should_enable()
@@ -45,6 +46,17 @@ func _ready() -> void:
 	# and the all-inventions campaign finale.
 	GameState.invention_discovered.connect(_on_invention_discovered)
 	GameState.quest_completed.connect(_on_quest_completed)
+	# Activation-funnel signals: level_start (reached a board), first_merge
+	# (engaged), tutorial_complete, plus recycle/soft-lock usage. These pinpoint
+	# where new players drop off (50% of early real users bounced before merging).
+	GameState.level_started.connect(_on_level_started)
+	GameState.merge_committed.connect(_on_merge_committed)
+	GameState.recycle_committed.connect(_on_recycle_committed)
+	GameState.soft_lock_broken.connect(_on_soft_lock_broken)
+	GameState.tutorial_completed.connect(_on_tutorial_completed)
+	# Daily-return hook (1.0.1): fires once per calendar day the player returns.
+	# This is the retention signal — pair it with game_open to read D1/D7.
+	GameState.daily_delivery_granted.connect(_on_daily_delivery_granted)
 
 	log_event("game_open", {
 		"app_version": ProjectSettings.get_setting("application/config/version", "dev"),
@@ -96,6 +108,38 @@ func _on_quest_completed(npc_id: StringName) -> void:
 		params["building"] = npc.building_label
 		params["level"] = npc.level + 1  # 1-based for readability in reports
 	log_event("building_complete", params)
+
+# --- Activation funnel handlers ---
+
+func _on_level_started(level_idx: int, npc_id: StringName) -> void:
+	log_event("level_start", {
+		"level": level_idx + 1,  # 1-based to match building_complete
+		"npc_id": String(npc_id),
+	})
+
+func _on_merge_committed(result_id: StringName) -> void:
+	# Only the FIRST merge per session — the activation milestone. Per-merge
+	# events would be high-volume noise; discovery depth is already captured by
+	# invention_discovered.total_discovered.
+	if _merged_this_session:
+		return
+	_merged_this_session = true
+	log_event("first_merge", {
+		"result_id": String(result_id),
+		"level": GameState.current_level + 1,
+	})
+
+func _on_recycle_committed(item_id: StringName) -> void:
+	log_event("recycle_used", {"item_id": String(item_id)})
+
+func _on_soft_lock_broken(offered: String) -> void:
+	log_event("soft_lock_break", {"offered": offered})
+
+func _on_tutorial_completed() -> void:
+	log_event("tutorial_complete", {})
+
+func _on_daily_delivery_granted(streak: int) -> void:
+	log_event("daily_return", {"streak": streak})
 
 # --- Internals ---
 

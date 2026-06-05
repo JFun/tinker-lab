@@ -22,6 +22,10 @@ func _ready() -> void:
 		if a == "--capture-transition":
 			_capture_transition_then_quit()
 			return
+	# Daily-return hook: advance the streak / queue a delivery crate. Placed AFTER
+	# the dev-harness early-returns above so screenshots & --test-hints stay
+	# deterministic (they never touch the streak or queue a delivery).
+	GameState.check_daily()
 	show_village()
 
 func _capture_transition_then_quit() -> void:
@@ -82,7 +86,7 @@ func _screenshot_then_quit() -> void:
 			var dims := a.substr(13).split("x")
 			if dims.size() == 2:
 				DisplayServer.window_set_size(Vector2i(int(dims[0]), int(dims[1])))
-	var shots := ["village", "settings", "workbench", "workbench_drag", "workbench_hint", "workbench_hint_full", "workbench_recycle", "book", "book_partial", "book_targeted", "tutorial", "glyph_audit", "level_complete", "workshop_complete"]
+	var shots := ["village", "settings", "workbench", "workbench_drag", "workbench_hint", "workbench_hint_full", "workbench_recycle", "workbench_delivery", "book", "book_partial", "book_targeted", "tutorial", "glyph_audit", "level_complete", "workshop_complete"]
 	if only != "":
 		shots = [only]
 	for which in shots:
@@ -107,6 +111,13 @@ func _screenshot_then_quit() -> void:
 		if which == "book_partial":
 			for id in ["fan", "display_case", "lamp_post", "clock", "winch", "factory"]:
 				GameState.discover(StringName(id))
+		# Returning-player daily delivery: set streak + pending BEFORE _ready so the
+		# workbench grants the crate and shows the streak toast on arrival.
+		if which == "workbench_delivery":
+			GameState.tutorial_seen = true
+			GameState.current_level = 1  # Lvl 2 pool → a Part-tier crate
+			GameState.streak = 4
+			GameState.daily_delivery_pending = true
 		_current = scene
 		add_child(scene)
 		for i in 5: await get_tree().process_frame
@@ -388,11 +399,107 @@ func _test_hints_then_quit() -> void:
 	_th_chute_no_flood_when_assemblable(wb)
 	_th_softlock_strategy_c_picks_missing(wb)
 	_th_quest_switching(wb)
+	_th_daily_delivery(wb)
+	_th_idle_hint_delay(wb)
 	_th_analytics_payload()
 
 	print("\n=== HINT TESTS: %d passed, %d failed ===" % [_test_pass, _test_fail])
 	wb.queue_free()
 	get_tree().quit(0 if _test_fail == 0 else 1)
+
+func _th_idle_hint_delay(wb) -> void:
+	# Adaptive first-hint delay ramps by lifetime merges: never-merged players get
+	# the fast nudge, easing back to the calm default once they've made a few.
+	var saved := GameState.lifetime_merges
+	GameState.lifetime_merges = 0
+	_tok(wb._idle_hint_delay() == wb.IDLE_HINT_NEW, "idle delay: 0 merges → fast (%.1f)" % wb._idle_hint_delay())
+	GameState.lifetime_merges = 1
+	_tok(wb._idle_hint_delay() == wb.IDLE_HINT_LEARNING, "idle delay: 1 merge → learning")
+	GameState.lifetime_merges = 2
+	_tok(wb._idle_hint_delay() == wb.IDLE_HINT_LEARNING, "idle delay: 2 merges → learning")
+	GameState.lifetime_merges = 3
+	_tok(wb._idle_hint_delay() == wb.IDLE_HINT_AFTER, "idle delay: 3 merges → calm default")
+	GameState.lifetime_merges = 50
+	_tok(wb._idle_hint_delay() == wb.IDLE_HINT_AFTER, "idle delay: veteran → calm default")
+	# The fast/learning delays must actually be shorter than the default, else the
+	# whole ramp is a no-op.
+	_tok(wb.IDLE_HINT_NEW < wb.IDLE_HINT_AFTER and wb.IDLE_HINT_LEARNING < wb.IDLE_HINT_AFTER, "idle delay: new/learning are shorter than default")
+
+	# Regression: the FIRST hint must fire at the adaptive delay, NOT be gated by
+	# the 12s retrigger window (the bug that made every tier ~12s). With no hint yet
+	# fired this idle period, _should_hint depends ONLY on idle time vs the delay —
+	# the (small) since-last-hint arg must be irrelevant.
+	GameState.lifetime_merges = 0  # delay = 3.5s
+	_tok(wb._should_hint(3.6, 0.1, false), "first hint fires at delay even with tiny since-last-hint (the bug)")
+	_tok(not wb._should_hint(3.4, 0.1, false), "first hint does NOT fire before the delay")
+	_tok(wb._should_hint(100.0, 0.1, false), "first hint fires well past the delay")
+	# Once a hint has fired, spacing is governed by HINT_RETRIGGER_EVERY only.
+	_tok(not wb._should_hint(100.0, wb.HINT_RETRIGGER_EVERY - 0.1, true), "retrigger waits the full window")
+	_tok(wb._should_hint(100.0, wb.HINT_RETRIGGER_EVERY + 0.1, true), "retrigger fires after the window")
+	GameState.lifetime_merges = saved
+
+func _th_daily_delivery(wb) -> void:
+	# Reward curve: day 1-2 → 1 Component, day 3-6 → 1 Part, day 7+ → 2 Parts.
+	# Verified per level so the chute crate always pulls from the right junk pool.
+	for li in Items.LEVELS.size():
+		var d1: Array = wb._daily_delivery_items(1, li)
+		_tok(d1.size() == 1, "L%d day1 crate has 1 item (got %d)" % [li + 1, d1.size()])
+		if d1.size() == 1:
+			var def1: Items.ItemDef = Items.get_def(d1[0])
+			_tok(def1 != null and def1.tier == Items.Tier.COMPONENT,
+				"L%d day1 crate is Component (got %s)" % [li + 1, d1[0]])
+		var d3: Array = wb._daily_delivery_items(3, li)
+		_tok(d3.size() == 1, "L%d day3 crate has 1 item (got %d)" % [li + 1, d3.size()])
+		if d3.size() == 1:
+			var def3: Items.ItemDef = Items.get_def(d3[0])
+			_tok(def3 != null and def3.tier == Items.Tier.PART,
+				"L%d day3 crate is Part (got %s)" % [li + 1, d3[0]])
+		var d7: Array = wb._daily_delivery_items(7, li)
+		_tok(d7.size() == 2, "L%d day7 crate has 2 items (got %d)" % [li + 1, d7.size()])
+		for it in d7:
+			var defx: Items.ItemDef = Items.get_def(it)
+			_tok(defx != null and defx.tier == Items.Tier.PART,
+				"L%d day7 crate all Parts (got %s)" % [li + 1, it])
+
+	# Date-gap math (drives the streak transitions).
+	_tok(GameState._day_gap("2026-06-03", "2026-06-04") == 1, "day_gap consecutive == 1")
+	_tok(GameState._day_gap("2026-06-01", "2026-06-04") == 3, "day_gap 3-day == 3")
+	_tok(GameState._day_gap("", "2026-06-04") >= 9999, "day_gap empty -> reset sentinel")
+
+	# Streak transitions via check_daily.
+	var today := GameState._today_string()
+	var t_today := Time.get_unix_time_from_datetime_string(today + "T00:00:00")
+	var yesterday := Time.get_date_string_from_unix_time(int(t_today) - 86400)
+	var three_ago := Time.get_date_string_from_unix_time(int(t_today) - 3 * 86400)
+
+	# Brand-new install: streak starts at 1 and today's date is stamped, but NO
+	# delivery is armed — a "Welcome back!" crate makes no sense on the install day.
+	GameState.last_open_date = ""
+	GameState.streak = 0
+	GameState.daily_delivery_pending = false
+	_tok(not GameState.check_daily(), "check_daily: first-ever run arms no delivery")
+	_tok(GameState.streak == 1, "check_daily: first run streak == 1 (got %d)" % GameState.streak)
+	_tok(not GameState.daily_delivery_pending, "check_daily: no delivery pending on first-ever run")
+	_tok(GameState.last_open_date == today, "check_daily: first run stamps today's date")
+	_tok(not GameState.check_daily(), "check_daily: same day is a no-op")
+	_tok(GameState.streak == 1, "check_daily: streak unchanged same day")
+
+	# First genuine return (the next consecutive day) extends to day 2 AND arms a crate.
+	GameState.last_open_date = yesterday
+	GameState.streak = 1
+	GameState.daily_delivery_pending = false
+	_tok(GameState.check_daily(), "check_daily: consecutive day is a new day")
+	_tok(GameState.streak == 2, "check_daily: consecutive day extends streak (got %d)" % GameState.streak)
+	_tok(GameState.daily_delivery_pending, "check_daily: delivery armed on consecutive-day return")
+
+	# Returning after a missed gap resets streak to 1 but STILL arms a crate — they
+	# came back, so the "Welcome back!" (streak 1) delivery is correct here.
+	GameState.last_open_date = three_ago
+	GameState.streak = 5
+	GameState.daily_delivery_pending = false
+	_tok(GameState.check_daily(), "check_daily: missed-day return is a new day")
+	_tok(GameState.streak == 1, "check_daily: missed day resets streak to 1 (got %d)" % GameState.streak)
+	_tok(GameState.daily_delivery_pending, "check_daily: delivery armed on missed-day return")
 
 func _th_analytics_payload() -> void:
 	# Analytics is disabled off-device (the native Firebase bridge only exists in
@@ -415,6 +522,26 @@ func _th_analytics_payload() -> void:
 	# NPC's building label + 1-based level.
 	var qrec := Analytics.build_record("building_complete", {"npc_id": "lux", "building": "Street Lamps", "level": 1})
 	_tok(qrec["params"].get("building", "") == "Street Lamps", "analytics: building param")
+	# Activation-funnel event records (added for the 1.0.1 funnel instrumentation).
+	var lrec := Analytics.build_record("level_start", {"level": 2, "npc_id": "baker"})
+	_tok(lrec.get("name", "") == "level_start" and lrec["params"].get("level", 0) == 2, "analytics: level_start record")
+	var mrec := Analytics.build_record("first_merge", {"result_id": "fan", "level": 1})
+	_tok(mrec.get("name", "") == "first_merge" and mrec["params"].get("result_id", "") == "fan", "analytics: first_merge record")
+	var rrec := Analytics.build_record("recycle_used", {"item_id": "spring"})
+	_tok(rrec.get("name", "") == "recycle_used" and rrec["params"].get("item_id", "") == "spring", "analytics: recycle_used record")
+	var srec := Analytics.build_record("soft_lock_break", {"offered": "Periscope"})
+	_tok(srec["params"].get("offered", "") == "Periscope", "analytics: soft_lock_break record")
+	var trec := Analytics.build_record("tutorial_complete", {})
+	_tok(trec.get("name", "") == "tutorial_complete", "analytics: tutorial_complete record")
+	var drec := Analytics.build_record("daily_return", {"streak": 3})
+	_tok(drec.get("name", "") == "daily_return" and drec["params"].get("streak", 0) == 3, "analytics: daily_return record")
+	# first_merge must fire only once per session.
+	Analytics._merged_this_session = false
+	Analytics._on_merge_committed(&"fan")
+	_tok(Analytics._merged_this_session, "analytics: first_merge sets session flag")
+	# Second call is a no-op (flag already set) — proves dedup guard holds.
+	Analytics._on_merge_committed(&"winch")
+	_tok(Analytics._merged_this_session, "analytics: first_merge dedup holds")
 
 func _clear_test_board() -> void:
 	for y in GameState.BOARD_H:

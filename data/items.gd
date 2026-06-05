@@ -63,6 +63,25 @@ func random_junk_for_level(idx: int) -> StringName:
 	var pool: Array = junks_for_level(idx)
 	return pool[randi() % pool.size()]
 
+## Daily-delivery helper: a ready-made item of `target_tier` (COMPONENT or PART)
+## drawn from level `idx`'s junk pool, by walking the same+same upgrade chain.
+## Returns &"" if no junk in the pool reaches that tier (shouldn't happen — every
+## junk has a full junk→component→part chain).
+func delivery_item_for_level(idx: int, target_tier: int) -> StringName:
+	var pool: Array = junks_for_level(idx).duplicate()
+	pool.shuffle()
+	for junk in pool:
+		var cur: StringName = junk
+		var d: ItemDef = get_def(cur)
+		while d != null and d.tier < target_tier:
+			var nxt: StringName = upgrade.get(cur, &"")
+			if nxt == &"": break
+			cur = nxt
+			d = get_def(cur)
+		if d != null and d.tier == target_tier:
+			return cur
+	return &""
+
 func level_of(invention_id: StringName) -> int:
 	for i in LEVELS.size():
 		var lvl: Dictionary = LEVELS[i]

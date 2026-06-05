@@ -5,6 +5,19 @@ signal invention_discovered(id: StringName)
 signal quest_completed(npc_id: StringName)
 signal board_changed
 
+# --- Funnel analytics signals (consumed only by systems/analytics.gd) ---
+# Added to diagnose the first-session activation funnel (where do new players
+# drop off: village -> workbench -> first merge -> building). Emitted from the
+# gameplay code; never alter game behavior. Off-device the listener no-ops.
+signal level_started(level_idx: int, npc_id: StringName)
+signal merge_committed(result_id: StringName)
+signal recycle_committed(item_id: StringName)
+signal soft_lock_broken(offered: String)
+signal tutorial_completed
+# Daily-return hook: emitted once per calendar day when the streak advances and a
+# delivery crate becomes pending. Consumed by analytics + (next launch) workbench.
+signal daily_delivery_granted(streak: int)
+
 const SAVE_PATH := "user://save.json"
 const BOARD_W := 4
 const BOARD_H := 4
@@ -27,6 +40,20 @@ var muted: bool = false  # global audio mute (Settings toggle); silences SFX via
 var workshop_complete_seen: bool = false  # gates the one-time "all inventions" celebration
 var levels_seen: Dictionary = {}  # level index -> true, gates per-level completion toasts
 var current_level: int = 0  # the level the player is actively working on
+# Lifetime merges across all sessions. Drives the adaptive idle-hint delay: a
+# player who has never merged gets a faster first nudge (activation funnel — ~half
+# of early players bounced before their first merge), ramping back to the calm 8s
+# once they've made a few. Persisted so the help fades across sessions, not just
+# within one. Incremented at the merge commit site in workbench.gd.
+var lifetime_merges: int = 0
+
+# --- Daily-return hook (1.0.1) ---
+# Streak = consecutive calendar days the player opened the app. `last_open_date`
+# is a local "YYYY-MM-DD" string. When a new day is detected, a delivery crate is
+# queued (daily_delivery_pending) and claimed at the workbench on first arrival.
+var last_open_date: String = ""
+var streak: int = 0
+var daily_delivery_pending: bool = false
 
 func _ready() -> void:
 	_init_board()
@@ -97,6 +124,10 @@ func save_game() -> void:
 		"workshop_complete_seen": workshop_complete_seen,
 		"levels_seen": levels_seen.keys().map(func(k): return int(k)),
 		"current_level": current_level,
+		"lifetime_merges": lifetime_merges,
+		"last_open_date": last_open_date,
+		"streak": streak,
+		"daily_delivery_pending": daily_delivery_pending,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null: return
@@ -131,6 +162,54 @@ func load_game() -> void:
 	for k in parsed.get("levels_seen", []):
 		levels_seen[int(k)] = true
 	current_level = int(parsed.get("current_level", 0))
+	lifetime_merges = int(parsed.get("lifetime_merges", 0))
+	last_open_date = str(parsed.get("last_open_date", ""))
+	streak = int(parsed.get("streak", 0))
+	daily_delivery_pending = bool(parsed.get("daily_delivery_pending", false))
+
+# --- Daily-return hook ---
+
+## Called once at launch (real game only — main.gd gates out the dev harnesses).
+## Advances the streak and queues a delivery crate when a new calendar day starts.
+## Returns true if a delivery was armed for this launch.
+func check_daily() -> bool:
+	var today := _today_string()
+	if last_open_date == today:
+		return false  # already counted today
+	# A brand-new install (no prior open date) starts the streak at 1 but gets NO
+	# delivery — a "Welcome back!" crate makes no sense for someone who never left.
+	# Deliveries begin on the first genuine return (the next consecutive day, or any
+	# later calendar day after a gap). We still stamp today's date + streak so the
+	# streak counts from the install day and tomorrow's return is a real day-2.
+	var first_ever := last_open_date == ""
+	var gap := _day_gap(last_open_date, today)
+	if gap == 1:
+		streak += 1  # consecutive day → extend streak
+	else:
+		streak = 1  # first ever, or a missed day → reset to 1
+	last_open_date = today
+	if first_ever:
+		save_game()
+		return false
+	daily_delivery_pending = true
+	save_game()
+	daily_delivery_granted.emit(streak)
+	return true
+
+func _today_string() -> String:
+	# Local-time "YYYY-MM-DD". get_date_string_from_system uses local time.
+	return Time.get_date_string_from_system()
+
+## Whole-day gap between two "YYYY-MM-DD" strings (b - a). Returns a large number
+## if `a` is empty/unparseable so the caller treats it as a streak reset.
+func _day_gap(a: String, b: String) -> int:
+	if a == "":
+		return 9999
+	var ua := Time.get_unix_time_from_datetime_string(a + "T00:00:00")
+	var ub := Time.get_unix_time_from_datetime_string(b + "T00:00:00")
+	if ua <= 0 or ub <= 0:
+		return 9999
+	return int(round((ub - ua) / 86400.0))
 
 func _board_to_strings() -> Array:
 	var out: Array = []

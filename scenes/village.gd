@@ -150,11 +150,21 @@ func _layout() -> void:
 	_tab_village.position = Vector2(ped_x, ped_y)
 	_tab_village.size = Vector2(ped_size, ped_size)
 
-	# Scroll area
+	# Scroll area. With only 5 cards the list is far shorter than the tall band
+	# on modern (19.5:9) phones, so center it vertically instead of clumping it at
+	# the top with a big void below. If the content ever exceeds the band (it won't
+	# at 5 cards, but stay safe), fall back to the full band + normal scrolling.
 	var scroll_top := safe_top + 36
 	var scroll_bottom := bar_y - ped_lift - 12
-	_scroll.position = Vector2(12, scroll_top)
-	_scroll.size = Vector2(w - 24, scroll_bottom - scroll_top)
+	var avail_h := scroll_bottom - scroll_top
+	var content_h := _list.get_combined_minimum_size().y
+	if content_h > 0.0 and content_h < avail_h:
+		var centered_top := scroll_top + (avail_h - content_h) * 0.5
+		_scroll.position = Vector2(12, centered_top)
+		_scroll.size = Vector2(w - 24, content_h)
+	else:
+		_scroll.position = Vector2(12, scroll_top)
+		_scroll.size = Vector2(w - 24, avail_h)
 
 func _refresh() -> void:
 	# Clear and rebuild cards
@@ -172,6 +182,9 @@ func _refresh() -> void:
 
 	var t := float(done_count) / N_NPCS
 	_bg.color = Color(0.12, 0.09, 0.06).lerp(Color(0.22, 0.16, 0.10), t)
+
+	# Re-center the (now rebuilt) list — deferred so card min-sizes are computed.
+	call_deferred("_layout")
 
 func _make_npc_card(idx: int, npc: Npcs.NpcDef, status: String) -> PanelContainer:
 	var card := PanelContainer.new()

@@ -85,10 +85,21 @@ var _flash_t: float = 0.0
 # suggested next move so newcomers aren't stuck wondering what to do.
 var _idle_t: float = 0.0
 var _last_hint_t: float = -1000.0
+var _hinted_this_idle: bool = false  # has a hint fired since the last input?
 var _suggest_cells: Array = []  # of Vector2i to pulse as a "do this" hint
+var _suggest_arrow: bool = true  # draw the connecting merge arrow between 2 cells?
+                                 # (false for the daily-delivery spotlight, where the
+                                 # two tiles are gifts, not a merge pair)
 var _suggest_recycle: bool = false  # when true, draw arrow to recycle zone
 const IDLE_HINT_AFTER := 8.0
 const HINT_RETRIGGER_EVERY := 12.0  # re-suggest while still idle
+# Adaptive first-hint delays for brand-new players. ~Half of early players bounced
+# before their first merge, so a never-merged player gets a fast 3.5s nudge,
+# easing back to the calm 8s once they've found their footing. Veterans are
+# unaffected. The retrigger cadence stays at HINT_RETRIGGER_EVERY for everyone —
+# once the strong dim+ring+arrow cue has fired, hammering it faster just nags.
+const IDLE_HINT_NEW := 3.5      # 0 lifetime merges
+const IDLE_HINT_LEARNING := 5.0  # 1-2 lifetime merges
 
 # Cells (Vector2i) that have at least one mergeable partner currently on the
 # board. Recomputed when board changes. Used by the soft-lock breaker and the
@@ -116,6 +127,8 @@ func _ready() -> void:
 	_refresh_quest_ui()
 	_refresh_progress()
 	_recompute_mergeable()
+	# Funnel: reaching a playable board (vs bouncing on the village hub).
+	GameState.level_started.emit(GameState.current_level, active_quest_npc)
 	# Defer layout until viewport has propagated a real size to this Control.
 	await get_tree().process_frame
 	_layout()
@@ -124,6 +137,11 @@ func _ready() -> void:
 	# Auto-open tutorial on first visit.
 	if not GameState.tutorial_seen:
 		_open_tutorial()
+	elif GameState.daily_delivery_pending:
+		# Returning player: hand them today's delivery crate. Gated on tutorial_seen
+		# so it never fights the first-run overlay (a brand-new player's day-1 crate
+		# is simply skipped — they already start on a full, ready-to-merge board).
+		_grant_daily_delivery()
 
 func _process(delta: float) -> void:
 	_pulse_t += delta
@@ -147,17 +165,21 @@ func _process(delta: float) -> void:
 	if _deliver_btn and _deliver_btn.visible:
 		var s := 0.85 + 0.15 * sin(_pulse_t * 6.0)
 		_deliver_btn.modulate = Color(1, s, s * 0.7)
-	# Idle-hint: trigger after IDLE_HINT_AFTER, then re-trigger every
-	# HINT_RETRIGGER_EVERY while the player stays idle (in case they missed
-	# the first toast or didn't act on the suggestion).
+	# Idle-hint: fire the FIRST hint after _idle_hint_delay() (shorter for new
+	# players), then re-trigger every HINT_RETRIGGER_EVERY while still idle (in case
+	# they missed it). These are decoupled on purpose — folding both into one AND
+	# made the retrigger gate (12s) silently govern the first hint too, so the
+	# adaptive 3.5/5/8s delay never actually applied.
 	_idle_t += delta
-	if _idle_t > IDLE_HINT_AFTER and (_pulse_t - _last_hint_t) > HINT_RETRIGGER_EVERY:
+	if _should_hint(_idle_t, _pulse_t - _last_hint_t, _hinted_this_idle):
 		_suggest_next_action()
+		_hinted_this_idle = true
 		_last_hint_t = _pulse_t
 
 func _suggest_next_action() -> void:
 	_suggest_cells.clear()
 	_suggest_recycle = false
+	_suggest_arrow = true  # merge/recycle hints keep their arrow; delivery turns it off
 	# 1. Cross-combine pair on board that produces an UNDISCOVERED invention.
 	# Don't suggest re-making something the player already has — that just
 	# clogs the board with duplicates (e.g. 12 Fans). If the only mergeable
@@ -940,7 +962,7 @@ func _draw() -> void:
 			# Sharp inner ring
 			draw_rect(sr.grow(2), Color(1.0, 0.95, 0.45, pulse), false, 5.0)
 		# Animated arrow between the two suggested cells (for merge pairs).
-		if _suggest_cells.size() == 2:
+		if _suggest_cells.size() == 2 and _suggest_arrow:
 			var c0: Vector2i = _suggest_cells[0]
 			var c1: Vector2i = _suggest_cells[1]
 			var p0 := _cell_origin(c0.x, c0.y) + Vector2(_cell_size, _cell_size) * 0.5
@@ -1265,10 +1287,32 @@ func _gui_input(event: InputEvent) -> void:
 
 func _reset_idle() -> void:
 	_idle_t = 0.0
+	_hinted_this_idle = false  # a fresh idle period → first-hint timing applies again
 	_last_hint_t = _pulse_t  # don't refire immediately after input
 	if _suggest_cells.size() > 0:
 		_suggest_cells.clear()
 		queue_redraw()
+
+## Pure decision for the idle-hint loop. The FIRST hint of an idle period fires as
+## soon as idle time passes the adaptive delay; once one has fired, subsequent
+## hints are spaced by HINT_RETRIGGER_EVERY. Keeping these separate is what lets
+## the short new-player delay actually take effect. Pure → --test-hints asserts it.
+func _should_hint(idle_t: float, since_last_hint: float, hinted: bool) -> bool:
+	if not hinted:
+		return idle_t > _idle_hint_delay()
+	return since_last_hint > HINT_RETRIGGER_EVERY
+
+## Seconds of idle before the first hint fires. Faster for players still learning
+## the core merge gesture (activation funnel), ramping to the calm IDLE_HINT_AFTER
+## once they've made a few merges. Pure (reads only GameState.lifetime_merges) so
+## --test-hints can assert the ramp.
+func _idle_hint_delay() -> float:
+	var m := GameState.lifetime_merges
+	if m <= 0:
+		return IDLE_HINT_NEW       # never merged → nudge fast (3.5s)
+	elif m < 3:
+		return IDLE_HINT_LEARNING  # 1-2 merges → still learning (5s)
+	return IDLE_HINT_AFTER         # 3+ merges → veteran, leave it calm (8s)
 
 func _debug_force_drag(src: Vector2i, hover: Vector2) -> void:
 	# Used by the screenshot harness to render a drag-in-progress for verification.
@@ -1298,6 +1342,7 @@ func _end_drag(p: Vector2) -> void:
 			GameState.set_cell(src.x, src.y, &"")
 			_show_toast("Cleared %s" % rdef.name, 2.0)
 			Audio.play_sfx("place")
+			GameState.recycle_committed.emit(rid)
 			# Delay the chute so the freed slot stays open long enough to use.
 			_chute_timer.start(4.0)
 			# Blacklist the recycled item so the chute and soft-lock breaker
@@ -1343,6 +1388,11 @@ func _end_drag(p: Vector2) -> void:
 			GameState.set_cell(dst.x, dst.y, result)
 			GameState.set_cell(src.x, src.y, &"")
 			Audio.play_sfx("merge")
+			# Funnel: first merge of the session is the key activation milestone.
+			GameState.merge_committed.emit(result)
+			# Lifetime merge tally drives the adaptive idle-hint delay (see
+			# _idle_hint_delay): new players who haven't merged get faster nudges.
+			GameState.lifetime_merges += 1
 			var def: Items.ItemDef = Items.get_def(result)
 			# Brief merge demo on the destination cell.
 			_show_merge_demo(src_id, dst_id, result, dst)
@@ -1699,7 +1749,13 @@ func _on_chute_tick() -> void:
 	elif empties.size() >= 4: drop_count = 2
 	for i in drop_count:
 		if i >= empties.size(): break
-		var id := _pick_helpful_junk()
+		# Daily-delivery items ride the chute first — drop the reward crate before
+		# any freshly-generated junk so the player sees their gift land promptly.
+		var id: StringName
+		if not GameState.chute_queue.is_empty():
+			id = GameState.chute_queue.pop_front()
+		else:
+			id = _pick_helpful_junk()
 		GameState.set_cell(empties[i].x, empties[i].y, id)
 	_reset_idle()
 
@@ -1790,6 +1846,76 @@ func _seed_starter_hand() -> void:
 	# on first _ready or on a level-advance (advance_to_level seeds there directly,
 	# beating the outgoing board's chute timer during the crossfade).
 	GameState.seed_starter_hand()
+
+## Daily-return reward. Queues a ready-made crate onto the chute (it drips onto the
+## board via _on_chute_tick as cells free up) and toasts the streak. Reward curve:
+## day 1-2 → 1 Component, day 3-6 → 1 Part, day 7+ → 2 Parts. Pure helper builds the
+## item list so it's unit-testable without the live scene.
+func _grant_daily_delivery() -> void:
+	var items := _daily_delivery_items(GameState.streak, GameState.current_level)
+	GameState.daily_delivery_pending = false
+	if items.is_empty():
+		GameState.save_game()
+		return
+	# Land the crate DIRECTLY on the board so the reward is always visible. If the
+	# board is full, scrap the least-useful junk tile to make room — turning a junk
+	# cell into a Part/Component is a clear win. Only if there's no empty cell AND
+	# no junk to scrap do we fall back to the (slower) chute queue.
+	var delivered_cells: Array = []
+	for id in items:
+		var cell := GameState.find_empty_cell()
+		if cell.x < 0:
+			cell = _lowest_junk_cell()
+		if cell.x < 0:
+			GameState.push_chute(id)
+		else:
+			GameState.set_cell(cell.x, cell.y, id)
+			delivered_cells.append(cell)
+	GameState.save_game()
+	# Spotlight the gift tile(s): dim the board + ring them (same cue as the idle
+	# hint) so the player can actually find their delivery. No merge arrow — these
+	# are gifts, not a pair to combine. Cleared on next interaction / idle hint.
+	if delivered_cells.size() > 0:
+		_suggest_cells = delivered_cells
+		_suggest_arrow = false
+		_suggest_recycle = false
+		_reset_idle()
+		queue_redraw()
+	# Announce with a BLOCKING modal card (not a toast). A 5s toast + board glow
+	# proved too easy to miss while the player taps between workshops, and a later
+	# level-advance reseed can wipe the gifted tile before they notice it. The card
+	# halts everything until tapped; the glow is waiting underneath when dismissed.
+	var card := preload("res://scenes/delivery_card.gd").new()
+	card.streak = GameState.streak
+	card.item_ids = items
+	add_child(card)
+
+## First board cell holding a tier-0 junk, scanned top-down/left-right. Used to
+## free room for a daily-delivery crate on a full board (junk is the cheapest tile
+## to sacrifice). Returns (-1,-1) if the board has no junk.
+func _lowest_junk_cell() -> Vector2i:
+	for y in GameState.BOARD_H:
+		for x in GameState.BOARD_W:
+			var d: Items.ItemDef = Items.get_def(GameState.get_cell(x, y))
+			if d != null and d.tier == Items.Tier.JUNK:
+				return Vector2i(x, y)
+	return Vector2i(-1, -1)
+
+## Pure: the crate contents for a given streak/level. No I/O, so --test-hints can
+## assert the reward curve directly.
+func _daily_delivery_items(streak: int, level_idx: int) -> Array:
+	var out: Array = []
+	if streak <= 2:
+		var c := Items.delivery_item_for_level(level_idx, Items.Tier.COMPONENT)
+		if c != &"": out.append(c)
+	elif streak <= 6:
+		var p := Items.delivery_item_for_level(level_idx, Items.Tier.PART)
+		if p != &"": out.append(p)
+	else:
+		for _i in 2:
+			var p := Items.delivery_item_for_level(level_idx, Items.Tier.PART)
+			if p != &"": out.append(p)
+	return out
 
 # Returns true if the upgrade-chain ending at `id` (or `id` itself, if it's
 # already a Part) is an ingredient in any undiscovered cross-combine.
@@ -1992,6 +2118,8 @@ func _break_soft_lock_if_needed() -> void:
 	Audio.play_sfx("place")
 	_show_toast("Combine these to INVENT the %s!" % target_name, 5.0)
 	GameState.save_game()
+	# Funnel: the breaker fired — board was stuck (full, zero merges available).
+	GameState.soft_lock_broken.emit(target_name)
 	_in_break_soft_lock = false
 
 func _refresh_quest_ui() -> void:

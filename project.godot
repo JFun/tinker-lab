@@ -11,9 +11,9 @@ config/description="Merge junk into inventions. Rebuild a quirky steampunk villa
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://icon.svg"
-boot_splash/show_image=false
+boot_splash/show_image=true
 boot_splash/image="res://splash.png"
-boot_splash/bg_color=Color(0.18, 0.13, 0.09, 1)
+boot_splash/bg_color=Color(0.227, 0.157, 0.094, 1)
 
 [autoload]
 

@@ -97,6 +97,7 @@ func _add_step(parent: Node, num: String, body: String) -> void:
 
 func _dismiss() -> void:
 	GameState.tutorial_seen = true
+	GameState.tutorial_completed.emit()
 	GameState.save_game()
 	queue_free()
 
