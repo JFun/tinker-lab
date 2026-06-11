@@ -48,7 +48,7 @@ func _ready() -> void:
 	var title := Label.new()
 	title.text = ("%s Complete!" % building_label) if building_label != "" \
 		else ("Level %d Complete!" % (level_idx + 1))
-	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_font_size_override("font_size", 32)
 	title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.40))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(title)
@@ -56,7 +56,7 @@ func _ready() -> void:
 	var sub := Label.new()
 	sub.text = thanks if thanks != "" \
 		else "You mastered \"%s\" — all 5 inventions discovered." % lvl.name
-	sub.add_theme_font_size_override("font_size", 15)
+	sub.add_theme_font_size_override("font_size", 20)
 	sub.add_theme_color_override("font_color", Color(0.95, 0.90, 0.75))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -73,13 +73,13 @@ func _ready() -> void:
 		grid.add_child(col)
 		var swatch := Label.new()
 		swatch.text = d.glyph
-		swatch.add_theme_font_size_override("font_size", 26)
+		swatch.add_theme_font_size_override("font_size", 30)
 		swatch.add_theme_color_override("font_color", d.color)
 		swatch.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(swatch)
 		var name_lbl := Label.new()
 		name_lbl.text = d.name
-		name_lbl.add_theme_font_size_override("font_size", 11)
+		name_lbl.add_theme_font_size_override("font_size", 15)
 		name_lbl.add_theme_color_override("font_color", Color(0.95, 0.90, 0.75))
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(name_lbl)
@@ -102,7 +102,7 @@ func _ready() -> void:
 		# fill so it clearly out-ranks the secondary button.
 		var go_next := Button.new()
 		go_next.text = "Level %d — %s" % [level_idx + 2, next_name]
-		go_next.add_theme_font_size_override("font_size", 22)
+		go_next.add_theme_font_size_override("font_size", 25)
 		go_next.add_theme_color_override("font_color", Color(1.0, 0.92, 0.72))
 		go_next.custom_minimum_size = Vector2(0, 72)
 		_style_button(go_next, Color(0.40, 0.30, 0.14), Color(1.0, 0.78, 0.30), 2)
@@ -116,7 +116,7 @@ func _ready() -> void:
 		# the gold primary, so it's NOT the rejected "two equal buttons" layout.
 		var stay := Button.new()
 		stay.text = "Not now — back to village"
-		stay.add_theme_font_size_override("font_size", 16)
+		stay.add_theme_font_size_override("font_size", 20)
 		stay.add_theme_color_override("font_color", Color(0.82, 0.76, 0.62))
 		stay.custom_minimum_size = Vector2(0, 52)
 		_style_button(stay, Color(0.24, 0.19, 0.13), Color(0, 0, 0, 0), 0)
@@ -129,7 +129,7 @@ func _ready() -> void:
 		# this branch shouldn't show in practice. Fall back to the village hub.
 		var back := Button.new()
 		back.text = "Back to Village  →"
-		back.add_theme_font_size_override("font_size", 20)
+		back.add_theme_font_size_override("font_size", 23)
 		back.add_theme_color_override("font_color", Color(1.0, 0.92, 0.72))
 		back.custom_minimum_size = Vector2(0, 64)
 		_style_button(back, Color(0.40, 0.30, 0.14), Color(1.0, 0.78, 0.30), 2)

@@ -54,7 +54,7 @@ func _ready() -> void:
 	# Subtitle
 	var sub := Label.new()
 	sub.text = "Here's your delivery crate:"
-	sub.add_theme_font_size_override("font_size", 20)
+	sub.add_theme_font_size_override("font_size", 24)
 	sub.add_theme_color_override("font_color", Color(0.90, 0.82, 0.58))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(sub)
@@ -75,7 +75,7 @@ func _ready() -> void:
 		if d != null:
 			var nm := Label.new()
 			nm.text = "Free %s" % d.name
-			nm.add_theme_font_size_override("font_size", 22)
+			nm.add_theme_font_size_override("font_size", 24)
 			nm.add_theme_color_override("font_color", Color(1.0, 0.90, 0.50))
 			nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			v.add_child(nm)
@@ -83,7 +83,7 @@ func _ready() -> void:
 	# Hint: it's already on the board, glowing.
 	var glow_hint := Label.new()
 	glow_hint.text = "Added to your bench — look for the glow."
-	glow_hint.add_theme_font_size_override("font_size", 18)
+	glow_hint.add_theme_font_size_override("font_size", 21)
 	glow_hint.add_theme_color_override("font_color", Color(0.65, 0.58, 0.40))
 	glow_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	glow_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -91,7 +91,7 @@ func _ready() -> void:
 
 	var dismiss := Label.new()
 	dismiss.text = "Tap anywhere to continue"
-	dismiss.add_theme_font_size_override("font_size", 18)
+	dismiss.add_theme_font_size_override("font_size", 20)
 	dismiss.add_theme_color_override("font_color", Color(0.50, 0.45, 0.35))
 	dismiss.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(dismiss)
@@ -118,7 +118,7 @@ func _make_tile(d: Items.ItemDef) -> PanelContainer:
 	vb.add_child(glyph)
 	var nm := Label.new()
 	nm.text = d.name
-	nm.add_theme_font_size_override("font_size", 16)
+	nm.add_theme_font_size_override("font_size", 20)
 	nm.add_theme_color_override("font_color", Color(1, 1, 1, 0.90))
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(nm)

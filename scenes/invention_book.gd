@@ -39,7 +39,7 @@ func _ready() -> void:
 	header.add_theme_constant_override("separation", 12)
 	v.add_child(header)
 	var title := Label.new()
-	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_font_size_override("font_size", 30)
 	title.add_theme_color_override("font_color", Color(1, 0.90, 0.55))
 	title.text = "Recipes"
 	header.add_child(title)
@@ -171,7 +171,7 @@ func _make_entry(id: StringName) -> PanelContainer:
 	glyph_lbl.text = d.glyph
 	glyph_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	glyph_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	glyph_lbl.add_theme_font_size_override("font_size", 30)
+	glyph_lbl.add_theme_font_size_override("font_size", 32)
 	var glyph_ink: Color
 	if discovered:
 		glyph_ink = d.color.lightened(0.35)
@@ -186,7 +186,7 @@ func _make_entry(id: StringName) -> PanelContainer:
 	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lbl.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", 16)
+	lbl.add_theme_font_size_override("font_size", 20)
 	lbl.add_theme_color_override("font_color",
 		Color(0.95, 0.88, 0.60) if discovered else Color(0.55, 0.48, 0.32))
 	var is_target := (id == highlight_id)

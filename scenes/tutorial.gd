@@ -37,25 +37,24 @@ func _ready() -> void:
 	# reflows cleanly at any font size.
 	_add_step(v, "★", "GOAL: discover all 25 inventions (5 are Masterworks). "
 		+ "The Recipes tab keeps your tally (\"Recipes 3 / 25\").")
-	_add_step(v, "1.", "Drag a SAME-COLOR pair together to upgrade. "
-		+ "Junk → Crafted → Part (3 tiers to climb).")
-	_add_step(v, "2.", "Once you have two DIFFERENT parts, combine them "
-		+ "to INVENT (Fuel Tank + Boiler = Oven).")
-	_add_step(v, "3.", "While dragging: GREEN = will merge, CYAN = clear "
-		+ "duplicate, BLUE = empty cell, RED = no recipe.")
-	_add_step(v, "4.", "Drag any item onto the recycle panel to clear its slot. "
-		+ "If you ever fully soft-lock, the chute auto-scraps for you — no dead ends.")
-	_add_step(v, "5.", "Tap the Deliver button when your invention is on the board, "
-		+ "then watch the village light up.")
-	_add_step(v, "?", "STUCK ON A RECIPE? Tap Recipes below — every undiscovered "
-		+ "invention shows its recipe (e.g. \"??? = Frame + Lantern\").")
+	_add_step(v, "1.", "Merge two of the SAME item to upgrade: "
+		+ "Junk → Crafted → Part.")
+	_add_step(v, "2.", "Combine two DIFFERENT Parts to INVENT "
+		+ "(Fuel Tank + Boiler = Oven).")
+	_add_step(v, "3.", "Corner colors = rank: green Crafted, blue Part, "
+		+ "gold Invention, purple Masterwork.")
+	_add_step(v, "4.", "While dragging, valid targets glow GREEN. "
+		+ "Drag onto RECYCLE to clear a slot.")
+	_add_step(v, "5.", "Discover all 5 inventions to restore each "
+		+ "villager's workshop.")
+	_add_step(v, "?", "Stuck? Tap Recipes below — every recipe is listed.")
 
 	# Single primary CTA. A first-time player hasn't placed a tile yet, so the
 	# natural action is to start playing — the Recipes tab (always in the bottom
 	# bar, and called out in step "?") is one tap away whenever they get stuck.
 	var ok := Button.new()
 	ok.text = "Got it — let me tinker"
-	ok.add_theme_font_size_override("font_size", 23)
+	ok.add_theme_font_size_override("font_size", 26)
 	ok.custom_minimum_size = Vector2(0, 62)
 	var cta := StyleBoxFlat.new()
 	cta.bg_color = Color(1.0, 0.78, 0.30)
@@ -89,16 +88,21 @@ func _add_step(parent: Node, num: String, body: String) -> void:
 	h.add_child(n)
 	var b := Label.new()
 	b.text = body
-	b.add_theme_font_size_override("font_size", 21)
+	b.add_theme_font_size_override("font_size", 24)
 	b.add_theme_color_override("font_color", Color(0.95, 0.90, 0.75))
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(b)
 
 func _dismiss() -> void:
-	GameState.tutorial_seen = true
-	GameState.tutorial_completed.emit()
-	GameState.save_game()
+	# This overlay is normally the "?" Help reference shown AFTER the interactive
+	# first-run tutorial. Only count a completion (and persist tutorial_seen) if the
+	# player somehow reached here without the interactive flow having run — never
+	# double-fire the analytics event.
+	if not GameState.tutorial_seen:
+		GameState.tutorial_seen = true
+		GameState.tutorial_completed.emit()
+		GameState.save_game()
 	queue_free()
 
 func _swallow(_event: InputEvent) -> void:

@@ -26,7 +26,32 @@ func _ready() -> void:
 	# the dev-harness early-returns above so screenshots & --test-hints stay
 	# deterministic (they never touch the streak or queue a delivery).
 	GameState.check_daily()
-	show_village()
+	# First run: skip the village menu and drop the player straight into the first
+	# villager's workbench, so the interactive tutorial starts the moment the app
+	# opens (Block-Blast style) instead of only after they figure out they must tap
+	# an NPC. Lux (level 0) wants the lamp_post the tutorial builds, so the first
+	# invention directly serves the first villager. Village stays one tab away.
+	var route := _first_scene_route()
+	if route.get("scene") == "workbench":
+		var npc_id: StringName = route["npc"]
+		var first := Npcs.by_id(npc_id)
+		if first.level >= 0 and first.level != GameState.current_level:
+			GameState.advance_to_level(first.level)
+		if GameState.quest_status(npc_id) != "done":
+			GameState.set_quest_status(npc_id, "active")
+		show_workbench(npc_id)
+	else:
+		show_village()
+
+## Pure boot-routing decision (no side effects) so it can be unit-tested. Returns
+## {"scene":"workbench","npc":<id>} on first run (tutorial unseen) so onboarding
+## starts on app open, else {"scene":"village"} for the normal menu.
+func _first_scene_route() -> Dictionary:
+	if not GameState.tutorial_seen:
+		var first := Npcs.by_level(0)
+		if first != null:
+			return {"scene": "workbench", "npc": first.id}
+	return {"scene": "village"}
 
 func _capture_transition_then_quit() -> void:
 	# Dev-only: capture the level-completion → "Back to Village" crossfade as a
@@ -86,7 +111,7 @@ func _screenshot_then_quit() -> void:
 			var dims := a.substr(13).split("x")
 			if dims.size() == 2:
 				DisplayServer.window_set_size(Vector2i(int(dims[0]), int(dims[1])))
-	var shots := ["village", "settings", "workbench", "workbench_drag", "workbench_hint", "workbench_hint_full", "workbench_recycle", "workbench_delivery", "book", "book_partial", "book_targeted", "tutorial", "glyph_audit", "level_complete", "workshop_complete"]
+	var shots := ["village", "settings", "workbench", "workbench_drag", "workbench_hint", "workbench_hint_full", "workbench_recycle", "workbench_delivery", "tiers", "book", "book_partial", "book_targeted", "tutorial", "tutorial_pop", "tutorial_finish", "help", "glyph_audit", "level_complete", "workshop_complete"]
 	if only != "":
 		shots = [only]
 	for which in shots:
@@ -98,11 +123,16 @@ func _screenshot_then_quit() -> void:
 		var scene: Node
 		if which == "glyph_audit":
 			scene = _build_glyph_audit_scene()
-		elif which == "village" or which == "settings" or which.begins_with("book") or which == "tutorial" or which == "workshop_complete":
+		elif which == "village" or which == "settings" or which.begins_with("book") or which == "help" or which == "workshop_complete":
 			scene = VILLAGE.instantiate()
 		elif which == "level_complete":
 			scene = WORKBENCH.instantiate()
 			scene.active_quest_npc = &"baker"
+		elif which == "tutorial" or which == "tutorial_pop" or which == "tutorial_finish":
+			# Real first-run routes to Lux, so the goal bar reads "Street Lamps" in
+			# her gold — the FINISH arrow points at it, so it must match reality.
+			scene = WORKBENCH.instantiate()
+			scene.active_quest_npc = &"lux"
 		else:
 			scene = WORKBENCH.instantiate()
 			scene.active_quest_npc = &"baker"
@@ -111,6 +141,10 @@ func _screenshot_then_quit() -> void:
 		if which == "book_partial":
 			for id in ["fan", "display_case", "lamp_post", "clock", "winch", "factory"]:
 				GameState.discover(StringName(id))
+		# tutorial_finish: the player has just built lamp_post, so Lux's bar should
+		# read "Street Lamps 1/5" — discover it before _ready lays out the goal bar.
+		if which == "tutorial_finish":
+			GameState.discover(&"lamp_post")
 		# Returning-player daily delivery: set streak + pending BEFORE _ready so the
 		# workbench grants the crate and shows the streak toast on arrival.
 		if which == "workbench_delivery":
@@ -118,6 +152,11 @@ func _screenshot_then_quit() -> void:
 			GameState.current_level = 1  # Lvl 2 pool → a Part-tier crate
 			GameState.streak = 4
 			GameState.daily_delivery_pending = true
+		# First-run tutorial shots mirror a brand-new install: no daily-delivery
+		# crate (it's an elif of the tutorial in workbench._ready, so a real
+		# first-run never shows it). Suppress before _ready can grant one.
+		if which == "tutorial" or which == "tutorial_pop" or which == "tutorial_finish":
+			GameState.daily_delivery_pending = false
 		_current = scene
 		add_child(scene)
 		for i in 5: await get_tree().process_frame
@@ -128,6 +167,20 @@ func _screenshot_then_quit() -> void:
 		await get_tree().process_frame
 		if which == "workbench_drag" and scene.has_method("_debug_force_drag"):
 			scene._debug_force_drag(Vector2i(0, 0), Vector2(360, 130))
+			await get_tree().process_frame
+		# tiers: one item of each tier so the pip/star indicators all render in one
+		# shot — Junk(1 dot) Crafted(2) Part(3) Invention(★) Masterwork(★★). Doubles
+		# as a visual-regression net for _draw_tier_pips.
+		if which == "tiers":
+			for y in GameState.BOARD_H:
+				for x in GameState.BOARD_W:
+					GameState.set_cell(x, y, &"")
+			GameState.set_cell(0, 0, &"bolt")         # Junk
+			GameState.set_cell(1, 0, &"bolt_bundle")  # Crafted
+			GameState.set_cell(2, 0, &"frame")        # Part
+			GameState.set_cell(3, 0, &"lamp_post")    # Invention
+			GameState.set_cell(0, 1, &"factory")      # Masterwork
+			scene.queue_redraw()
 			await get_tree().process_frame
 		# workbench_hint: reproduce the "Oven quest + level-2 board" scenario so
 		# the toast renders. Pre-fixes, this said "Missing: Clock". Now it should
@@ -236,10 +289,25 @@ func _screenshot_then_quit() -> void:
 			if scene.has_method("_open_more"):
 				scene._open_more()
 			for i in 4: await get_tree().process_frame
-		if which == "tutorial":
-			var tut := preload("res://scenes/tutorial.tscn").instantiate()
-			scene.add_child(tut)
+		if which == "help":
+			# Static text quick-reference (the "?" tab), rendered over the village.
+			var helpov := preload("res://scenes/tutorial.tscn").instantiate()
+			scene.add_child(helpov)
 			for i in 3: await get_tree().process_frame
+		if which == "tutorial" or which == "tutorial_pop" or which == "tutorial_finish":
+			# Interactive first-run tutorial over a live workbench. It seeds its own
+			# rail board, so this verifies the spotlight/pointer (step 1) and the
+			# finish congrats + Recipes pointer.
+			var tut := preload("res://scenes/tutorial_interactive.tscn").instantiate()
+			scene.add_child(tut)
+			for i in 6: await get_tree().process_frame
+			if which == "tutorial_pop":
+				# Verify the tier-name flash draw path: pop "Crafted!" on a Bundle tile.
+				tut._show_tier_pop(tut._one_of(&"bolt_bundle"), "Crafted!", Items.Tier.COMPONENT)
+				for i in 2: await get_tree().process_frame
+			if which == "tutorial_finish":
+				tut._set_phase(tut.FINISH)
+				for i in 4: await get_tree().process_frame
 		if which == "level_complete":
 			var lc := preload("res://scenes/level_complete.tscn").instantiate()
 			lc.level_idx = 0
@@ -401,6 +469,7 @@ func _test_hints_then_quit() -> void:
 	_th_quest_switching(wb)
 	_th_daily_delivery(wb)
 	_th_idle_hint_delay(wb)
+	_th_tutorial_chain()
 	_th_analytics_payload()
 
 	print("\n=== HINT TESTS: %d passed, %d failed ===" % [_test_pass, _test_fail])
@@ -500,6 +569,44 @@ func _th_daily_delivery(wb) -> void:
 	_tok(GameState.check_daily(), "check_daily: missed-day return is a new day")
 	_tok(GameState.streak == 1, "check_daily: missed day resets streak to 1 (got %d)" % GameState.streak)
 	_tok(GameState.daily_delivery_pending, "check_daily: delivery armed on missed-day return")
+
+func _th_tutorial_chain() -> void:
+	# The interactive first-run tutorial (scenes/tutorial_interactive.gd) hand-guides
+	# the player along a fixed rail: bolt->bolt_bundle->frame, plus a pre-seeded
+	# lantern, then frame+lantern->lamp_post (the first invention + discovery card).
+	# If any of these recipes are renamed/repathed the rail would soft-lock with no
+	# visible error, so guard the exact chain here.
+	_tok(Items.try_merge(&"bolt", &"bolt") == &"bolt_bundle", "tutorial: bolt+bolt=bolt_bundle")
+	_tok(Items.try_merge(&"bolt_bundle", &"bolt_bundle") == &"frame", "tutorial: bundle+bundle=frame")
+	_tok(Items.try_merge(&"frame", &"lantern") == &"lamp_post", "tutorial: frame+lantern=lamp_post")
+	# lamp_post must be a real, undiscovered-at-start Level-1 target so the discovery
+	# card fires and it counts toward the player's first quest.
+	_tok(Items.level_of(&"lamp_post") == 0, "tutorial: lamp_post is a Level-1 target")
+	_tok(Items.get_story(&"lamp_post") != "", "tutorial: lamp_post has a discovery story")
+	# Defensive: the seeded lantern must NOT same-merge into anything (it sits alone),
+	# and bolt+bolt_bundle / bolt+lantern must NOT merge — that's what keeps the rail
+	# single-path so the player can't take a wrong turn.
+	_tok(Items.try_merge(&"lantern", &"lantern") == &"", "tutorial: lone lantern won't same-merge")
+	_tok(Items.try_merge(&"bolt", &"bolt_bundle") == &"", "tutorial: bolt+bundle has no cross (rail holds)")
+	_tok(Items.try_merge(&"bolt", &"lantern") == &"", "tutorial: bolt+lantern has no cross (rail holds)")
+	_tok(Items.try_merge(&"bolt_bundle", &"lantern") == &"", "tutorial: bundle+lantern has no cross (rail holds)")
+	# First-run boot drops straight into the level-0 villager's workbench, and the
+	# tutorial's payoff (lamp_post) must be exactly that villager's quest invention
+	# so the first build serves the first villager. Guard both ends of that link.
+	var first_npc := Npcs.by_level(0)
+	_tok(first_npc != null, "tutorial: a level-0 villager exists for first-run boot")
+	if first_npc != null:
+		_tok(first_npc.wants == &"lamp_post", "tutorial: level-0 villager wants lamp_post (tutorial payoff)")
+	# Boot routing: a brand-new player (tutorial unseen) must land on the workbench
+	# so onboarding starts on open; a returning player goes to the village menu.
+	var _saved_seen := GameState.tutorial_seen
+	GameState.tutorial_seen = false
+	var r_new := _first_scene_route()
+	_tok(r_new.get("scene") == "workbench", "boot: first run routes to workbench (tutorial on open)")
+	_tok(r_new.get("npc") == first_npc.id, "boot: first run targets the level-0 villager")
+	GameState.tutorial_seen = true
+	_tok(_first_scene_route().get("scene") == "village", "boot: returning player routes to village")
+	GameState.tutorial_seen = _saved_seen
 
 func _th_analytics_payload() -> void:
 	# Analytics is disabled off-device (the native Firebase bridge only exists in

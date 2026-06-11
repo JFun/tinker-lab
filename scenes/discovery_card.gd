@@ -52,7 +52,7 @@ func _ready() -> void:
 	# Title: "Invention Discovered!"
 	var title := Label.new()
 	title.text = "Invention Discovered!"
-	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_font_size_override("font_size", 32)
 	title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.40))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(title)
@@ -101,7 +101,7 @@ func _ready() -> void:
 	if story != "":
 		var story_lbl := Label.new()
 		story_lbl.text = "\"%s\"" % story
-		story_lbl.add_theme_font_size_override("font_size", 22)
+		story_lbl.add_theme_font_size_override("font_size", 26)
 		story_lbl.add_theme_color_override("font_color", Color(0.90, 0.82, 0.58))
 		story_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		story_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -113,7 +113,7 @@ func _ready() -> void:
 		var pa: Items.ItemDef = parents[0]
 		var pb: Items.ItemDef = parents[1]
 		roles.text = "%s + %s = %s" % [pa.name, pb.name, def.name]
-		roles.add_theme_font_size_override("font_size", 18)
+		roles.add_theme_font_size_override("font_size", 20)
 		roles.add_theme_color_override("font_color", Color(0.65, 0.58, 0.40))
 		roles.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		v.add_child(roles)
@@ -121,7 +121,7 @@ func _ready() -> void:
 	# Tap to dismiss label
 	var dismiss := Label.new()
 	dismiss.text = "Tap anywhere to continue"
-	dismiss.add_theme_font_size_override("font_size", 18)
+	dismiss.add_theme_font_size_override("font_size", 20)
 	dismiss.add_theme_color_override("font_color", Color(0.50, 0.45, 0.35))
 	dismiss.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(dismiss)
@@ -154,7 +154,7 @@ func _make_ingredient_tile(d: Items.ItemDef) -> PanelContainer:
 	vb.add_child(glyph)
 	var nm := Label.new()
 	nm.text = d.name
-	nm.add_theme_font_size_override("font_size", 16)
+	nm.add_theme_font_size_override("font_size", 18)
 	nm.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(nm)
@@ -182,7 +182,7 @@ func _make_result_tile(d: Items.ItemDef) -> PanelContainer:
 	vb.add_child(glyph)
 	var nm := Label.new()
 	nm.text = d.name
-	nm.add_theme_font_size_override("font_size", 18)
+	nm.add_theme_font_size_override("font_size", 20)
 	nm.add_theme_color_override("font_color", Color(1, 1, 1, 0.90))
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(nm)

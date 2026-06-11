@@ -53,7 +53,7 @@ func _ready() -> void:
 	var sub := Label.new()
 	var total: int = Items.all_inventions().size()
 	sub.text = "You rebuilt the whole village — all %d inventions discovered!" % total
-	sub.add_theme_font_size_override("font_size", 17)
+	sub.add_theme_font_size_override("font_size", 21)
 	sub.add_theme_color_override("font_color", Color(0.95, 0.90, 0.75))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -73,7 +73,7 @@ func _ready() -> void:
 		# ★ = masterwork, • = regular invention (font-safe glyphs; emoji tofu on iOS)
 		var prefix := "★ " if d.tier == Items.Tier.MASTERWORK else "• "
 		row.text = prefix + d.name
-		row.add_theme_font_size_override("font_size", 15)
+		row.add_theme_font_size_override("font_size", 18)
 		var col: Color = Color(1.0, 0.78, 0.30) if d.tier == Items.Tier.MASTERWORK \
 			else Color(0.95, 0.90, 0.75)
 		row.add_theme_color_override("font_color", col)
@@ -83,7 +83,7 @@ func _ready() -> void:
 	# not a sign-off. Gives the finale somewhere to point beyond "the end".
 	var teaser := Label.new()
 	teaser.text = "New districts, NPCs, and contraptions are on the way in a future update. Stay tuned — and thank you for tinkering!"
-	teaser.add_theme_font_size_override("font_size", 16)
+	teaser.add_theme_font_size_override("font_size", 19)
 	teaser.add_theme_color_override("font_color", Color(0.62, 0.90, 0.85))
 	teaser.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	teaser.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -91,7 +91,7 @@ func _ready() -> void:
 
 	var ok := Button.new()
 	ok.text = "Continue Tinkering  →"
-	ok.add_theme_font_size_override("font_size", 22)
+	ok.add_theme_font_size_override("font_size", 25)
 	ok.custom_minimum_size = Vector2(0, 64)
 	var ok_sb := StyleBoxFlat.new()
 	ok_sb.bg_color = Color(1.0, 0.78, 0.30)

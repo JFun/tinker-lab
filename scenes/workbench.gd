@@ -21,8 +21,6 @@ var _goal_label: Label
 var _goal_fill: ColorRect
 var _goal_track: ColorRect
 var _goal_track_sb: StyleBoxFlat  # border tint per NPC
-# Quest-recipe banner — visible whenever a quest is active. Shows the parts
-var _hint_label: Label
 var _toast: PanelContainer
 var _toast_label: Label
 var _toast_timer: Timer
@@ -40,6 +38,11 @@ var _failed_experiments: int = 0
 # board with no mergeable pairs (e.g. all masterworks + lone parts) blows
 # the iOS main-thread 1MB stack via GDScript signal recursion.
 var _in_break_soft_lock: bool = false
+
+# Set by the first-run interactive tutorial (scenes/tutorial_interactive.gd) while
+# it hand-guides the player on a deterministic "rail" board. The chute, idle-hint
+# pulse, and soft-lock breaker all stand down so nothing disturbs the rail.
+var _tutorial_active: bool = false
 
 # Recycle blacklist: items the player just scrapped. Chute + soft-lock breaker
 # avoid pushing these (or their seed chains, indirectly via skipping the target)
@@ -171,7 +174,7 @@ func _process(delta: float) -> void:
 	# made the retrigger gate (12s) silently govern the first hint too, so the
 	# adaptive 3.5/5/8s delay never actually applied.
 	_idle_t += delta
-	if _should_hint(_idle_t, _pulse_t - _last_hint_t, _hinted_this_idle):
+	if not _tutorial_active and _should_hint(_idle_t, _pulse_t - _last_hint_t, _hinted_this_idle):
 		_suggest_next_action()
 		_hinted_this_idle = true
 		_last_hint_t = _pulse_t
@@ -279,7 +282,7 @@ func _suggest_next_action() -> void:
 		else:
 			_show_toast("Board full — merge items to free space.", 6.0)
 	else:
-		_show_toast("Wait for the chute to drop more junk, or merge what you have.", 5.0)
+		_show_toast("More junk is coming — keep merging!", 5.0)
 
 # Tries to show an actionable hint for making `missing_id`. Returns true if a
 # toast was fired (and `_suggest_cells` set when there's a cell pulse to draw).
@@ -358,7 +361,7 @@ func _hint_for_missing(missing_id: StringName, target_label: String, lead: Strin
 			return true
 		if seed_pos.x >= 0:
 			_suggest_cells = [seed_pos]
-		_show_toast("%s For %s: need %s — wait for another %s, then keep merging up." % [
+		_show_toast("%s For %s: need %s — wait for another %s." % [
 			lead, target_label, missing_name, seed_label], 6.0)
 		queue_redraw()
 		return true
@@ -609,7 +612,7 @@ func _build_ui() -> void:
 	_book_btn.tooltip_text = "Recipes — all 25 inventions; undiscovered show recipe."
 	add_child(_book_btn)
 
-	_help_btn = _make_tab_button("?", "Help", false, _open_tutorial)
+	_help_btn = _make_tab_button("?", "Help", false, _open_help)
 	_help_btn.tooltip_text = "How to play (recipes are under the Recipes tab, not here)"
 	add_child(_help_btn)
 
@@ -617,7 +620,7 @@ func _build_ui() -> void:
 	_quest_label = Label.new()
 	_quest_label.position = Vector2(12, safe_top + 52)
 	_quest_label.add_theme_color_override("font_color", Color(0.95, 0.85, 0.55))
-	_quest_label.add_theme_font_size_override("font_size", 17)
+	_quest_label.add_theme_font_size_override("font_size", 20)
 	_quest_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	add_child(_quest_label)
 
@@ -644,7 +647,7 @@ func _build_ui() -> void:
 	_goal_fill.color = Color(0.40, 0.75, 0.35, 1.0)
 	_goal_banner.add_child(_goal_fill)
 	_goal_label = Label.new()
-	_goal_label.add_theme_font_size_override("font_size", 20)
+	_goal_label.add_theme_font_size_override("font_size", 28)
 	_goal_label.add_theme_color_override("font_color", Color(1, 1, 1))
 	_goal_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.95))
 	_goal_label.add_theme_constant_override("shadow_offset_x", 1)
@@ -653,10 +656,8 @@ func _build_ui() -> void:
 	_goal_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_goal_banner.add_child(_goal_label)
 
-	# Hint label
-	_hint_label = Label.new()
-	_hint_label.add_theme_color_override("font_color", Color(0.85, 0.75, 0.55))
-	add_child(_hint_label)
+	# (No persistent bottom hint label — every hint shows as the big toast; the
+	# small duplicate line under the board was just more tiny text to ignore.)
 
 	# Deliver button (appears when quest's required invention is on the board).
 	# Styled as a bright CTA so a new player can't miss it.
@@ -674,7 +675,7 @@ func _build_ui() -> void:
 	deliver_row.add_child(truck)
 	var deliver_lbl := Label.new()
 	deliver_lbl.text = "Deliver"
-	deliver_lbl.add_theme_font_size_override("font_size", 20)
+	deliver_lbl.add_theme_font_size_override("font_size", 26)
 	deliver_lbl.add_theme_color_override("font_color", deliver_ink)
 	deliver_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	deliver_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -710,7 +711,7 @@ func _build_ui() -> void:
 	toast_sb.content_margin_top = 10;  toast_sb.content_margin_bottom = 10
 	_toast.add_theme_stylebox_override("panel", toast_sb)
 	_toast_label = Label.new()
-	_toast_label.add_theme_font_size_override("font_size", 20)
+	_toast_label.add_theme_font_size_override("font_size", 30)
 	_toast_label.add_theme_color_override("font_color", Color(1, 0.95, 0.70))
 	_toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -769,12 +770,12 @@ func _build_ui() -> void:
 		cell.add_child(v)
 		var glyph_lbl := Label.new()
 		glyph_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		glyph_lbl.add_theme_font_size_override("font_size", 32)
+		glyph_lbl.add_theme_font_size_override("font_size", 36)
 		glyph_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		v.add_child(glyph_lbl)
 		var name_lbl := Label.new()
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_lbl.add_theme_font_size_override("font_size", 13)
+		name_lbl.add_theme_font_size_override("font_size", 20)
 		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		v.add_child(name_lbl)
@@ -817,7 +818,7 @@ func _layout() -> void:
 	# Goal banner just above the board — tall, full-width, label centered inside.
 	# Recipe banner shares the same slot (only one of them shows at a time:
 	# goal banner when no quest, recipe banner when a quest is active).
-	var gb_h: float = 40.0
+	var gb_h: float = 46.0
 	_goal_banner.position = Vector2(12, oy - gb_h - 8)
 	_goal_banner.size = Vector2(w - 24, gb_h)
 	_goal_track.position = Vector2.ZERO
@@ -826,8 +827,6 @@ func _layout() -> void:
 	_goal_label.size = _goal_banner.size
 	_goal_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_refresh_goal_bar()
-	_hint_label.position = Vector2(12, oy + board_h + 8)
-	_hint_label.size = Vector2(w - 24, 24)
 	# Toast sits just under the top bar, ABOVE the board — impossible to miss.
 	_toast.position = Vector2(12, top_h - 36)
 	_toast.size = Vector2(w - 24, 60)
@@ -907,7 +906,11 @@ func _draw() -> void:
 	var src_id: StringName = &""
 	if dragging:
 		src_id = GameState.get_cell(_dragging_cell.x, _dragging_cell.y)
-	# Cells
+	# Cells. While dragging we DIM the whole board and only spotlight cells the held
+	# item can merge with (collected here, drawn bright after the loop) — so "what
+	# can I combine this with?" is answered with zero noise, instead of ringing every
+	# cell green/blue/red at once.
+	var merge_targets: Array = []
 	for y in GameState.BOARD_H:
 		for x in GameState.BOARD_W:
 			var origin := _cell_origin(x, y)
@@ -918,11 +921,19 @@ func _draw() -> void:
 			var is_src := (x == _dragging_cell.x and y == _dragging_cell.y)
 			if id != &"" and not is_src:
 				_draw_item(id, cell_rect)
-			# Highlight ring while dragging so the player can SEE what works.
 			if dragging and not is_src:
-				var ring := _highlight_color(src_id, id)
-				if ring.a > 0:
-					draw_rect(cell_rect.grow(-2), ring, false, 3.0)
+				var can_merge: bool = id != &"" and Items.try_merge(src_id, id) != &""
+				if can_merge:
+					merge_targets.append(cell_rect)
+				else:
+					draw_rect(cell_rect, Color(0, 0, 0, 0.58), true)  # dim the rest
+	# Spotlight the valid merge targets on top of the dim, with a bright pulsing
+	# green halo so they're impossible to miss.
+	if dragging and merge_targets.size() > 0:
+		var mp: float = 0.70 + 0.30 * sin(_pulse_t * 4.5)
+		for tr in merge_targets:
+			draw_rect(tr.grow(5), Color(0.30, 0.95, 0.45, mp * 0.55), false, 8.0)
+			draw_rect(tr.grow(1), Color(0.50, 1.0, 0.60, mp), false, 5.0)
 	# --- Recycle bin zone (always drawn) ---
 	# While dragging an item, the bin shows "Clear slot" INSTEAD of the static
 	# label so the two don't overlap.
@@ -1017,7 +1028,7 @@ func _draw() -> void:
 	# Demo "A + B → C" caption floating above the merge cell.
 	if _demo_t > 0.0 and _demo_text != "":
 		var font := ThemeDB.fallback_font
-		var fs := 18
+		var fs := 26
 		var sz := font.get_string_size(_demo_text, HORIZONTAL_ALIGNMENT_CENTER, -1, fs)
 		# Drift upward as it fades.
 		var rise := (1.0 - _demo_t) * 26.0
@@ -1110,53 +1121,41 @@ func _draw_recycle_bin(is_dragging: bool) -> void:
 		# Dragging an item → show "Clear slot" INSTEAD of the static label
 		# (avoids overlapping "RECYCLE" and the drop prompt on top of each other).
 		var pre := "Clear slot"
-		var pre_fsz := 22
+		var pre_fsz := 26
 		var glow: float = 0.65 + 0.30 * sin(_pulse_t * 4.0)
 		var pcol := Color(0.55, 0.95, 0.45, 1.0 if _recycle_rect.has_point(_drag_pos) else glow)
 		draw_string(font, Vector2(text_x, text_cy + 6),
 			pre, HORIZONTAL_ALIGNMENT_LEFT, -1, pre_fsz, pcol)
 	else:
-		# Default: "RECYCLE" + subtitle
-		var label_txt := "RECYCLE"
-		var label_fsz := 22
-		var label_sz := font.get_string_size(label_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, label_fsz)
-		draw_string(font, Vector2(text_x, text_cy + 2),
-			label_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, label_fsz, col)
-		var sub_txt := "drag items here to clear a slot"
-		var sub_fsz := 16
-		draw_string(font, Vector2(text_x, text_cy + label_sz.y * 0.85 + 4),
-			sub_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, sub_fsz, Color(col.r, col.g, col.b, 0.70))
+		# Default: just the word — the "drag items here..." subtitle was one more
+		# line of small text; the bin icon + drag affordance carry the meaning,
+		# and "Clear slot" appears the moment a drag starts.
+		draw_string(font, Vector2(text_x, text_cy + 10),
+			"RECYCLE", HORIZONTAL_ALIGNMENT_LEFT, -1, 28, col)
 
-func _highlight_color(src_id: StringName, dst_id: StringName) -> Color:
-	# Green  = produces an item (upgrade or invention)
-	# Blue   = empty cell (move only)
-	# Red    = non-empty, no recipe — would bounce back
-	if dst_id == &"":
-		return Color(0.30, 0.65, 0.95, 0.85)  # blue: move target
-	var result := Items.try_merge(src_id, dst_id)
-	if result != &"":
-		return Color(0.30, 0.85, 0.40, 0.95)  # green: valid merge
-	# Same+same with no upgrade → dropping clears the duplicate (cyan ring).
-	if src_id == dst_id:
-		return Color(0.45, 0.85, 0.95, 0.85)  # cyan: clear duplicate
-	return Color(0.85, 0.30, 0.30, 0.70)  # red: invalid pair
-
-const TIER_COLORS := [
-	Color(0.55, 0.50, 0.42),  # T0 Junk — muted
-	Color(0.75, 0.65, 0.45),  # T1 Component — warm
-	Color(0.90, 0.78, 0.45),  # T2 Part — brass
-	Color(1.00, 0.90, 0.40),  # T3 Invention — gold
-	Color(1.00, 0.65, 0.25),  # T4 Masterwork — fire
-]
-const TIER_NAMES := ["Junk", "Crafted", "Part", "Invent", "Master"]
-
-# Warm neutral tile backgrounds by tier — cohesive base, color comes from glyph.
+# Tile backgrounds are a CALM warm board — category is NOT carried by the bg
+# (subtle bg tints failed twice on the real device). Tier lives in a small
+# folded-corner ribbon in a saturated rarity color: word pills on every cell
+# were too heavy once the board filled up, but a bare color triangle keeps the
+# scan. So the bg just stays cozy and uniform; discovered tiers sit a touch
+# deeper for a faint premium feel, the ribbon + glyph do the talking.
 const TILE_BG := [
-	Color(0.28, 0.24, 0.18),   # Junk — dark warm brown
-	Color(0.32, 0.27, 0.19),   # Crafted — slightly lighter
-	Color(0.36, 0.30, 0.20),   # Part — warmer, richer
-	Color(0.22, 0.18, 0.12),   # Invention — darker, premium feel
-	Color(0.20, 0.16, 0.10),   # Masterwork — deepest, luxurious
+	Color(0.31, 0.25, 0.18),   # Junk — warm cozy brown (no ribbon = raw scrap)
+	Color(0.31, 0.25, 0.18),   # Crafted — same calm warm board
+	Color(0.31, 0.25, 0.18),   # Part — same calm warm board
+	Color(0.27, 0.21, 0.14),   # Invention — a touch deeper for a premium feel
+	Color(0.25, 0.18, 0.11),   # Masterwork — deepest premium base
+]
+
+# Bold "loot-rarity" tier colors — the one place tier color lives. Used by the
+# corner ribbon here and by the tutorial's tier pops, which teach the mapping
+# (green=Crafted, blue=Part, gold=Invention, purple=Masterwork).
+const TIER_COLOR := [
+	Color(0.55, 0.55, 0.58),   # Junk — grey
+	Color(0.36, 0.72, 0.42),   # Crafted — green
+	Color(0.32, 0.60, 0.93),   # Part — blue
+	Color(0.97, 0.76, 0.26),   # Invention — gold
+	Color(0.80, 0.50, 0.96),   # Masterwork — purple
 ]
 
 func _draw_item(id: StringName, rect: Rect2, scale: float = 1.0) -> void:
@@ -1170,7 +1169,8 @@ func _draw_item(id: StringName, rect: Rect2, scale: float = 1.0) -> void:
 	# Subtle top highlight for depth
 	var hi := Rect2(inner.position, Vector2(inner.size.x, 2))
 	draw_rect(hi, Color(1, 1, 1, 0.08), true)
-	# Border — item color tint for Invention/Masterwork, subtle for lower tiers
+	# Border — subtle warm rim for all tiers; Invention/Masterwork get a brighter
+	# item-color rim as a premium accent (the tag carries the actual rank).
 	var thickness: float = 1.5
 	var border_color: Color
 	if d.tier >= Items.Tier.INVENTION:
@@ -1178,38 +1178,25 @@ func _draw_item(id: StringName, rect: Rect2, scale: float = 1.0) -> void:
 		border_color = d.color.lightened(0.15)
 		border_color.a = 0.85
 	else:
-		border_color = Color(0.55, 0.45, 0.30, 0.50)
+		border_color = Color(0.50, 0.40, 0.26, 0.55)
 	draw_rect(inner, border_color, false, thickness)
 	var font := ThemeDB.fallback_font
 
-	# Slim tier band at the BOTTOM
-	var band_h: float = max(12.0, inner.size.y * 0.14)
-	var band_rect := Rect2(
-		inner.position + Vector2(0, inner.size.y - band_h),
-		Vector2(inner.size.x, band_h))
-	# Invention/masterwork: colored band accent; lower tiers: subtle dark band.
-	var band_color: Color
-	if d.tier >= Items.Tier.INVENTION:
-		band_color = d.color.darkened(0.45)
-		band_color.a = 0.70
-	else:
-		band_color = Color(0, 0, 0, 0.25)
-	draw_rect(band_rect, band_color, true)
-	var tier_fs: int = max(9, int(band_h * 0.62))
-	var tier_text: String = TIER_NAMES[d.tier].to_upper()
-	var ts := font.get_string_size(tier_text, HORIZONTAL_ALIGNMENT_CENTER, -1, tier_fs)
-	var tier_ink := Color(0.75, 0.65, 0.45, 0.85) if d.tier < Items.Tier.INVENTION \
-		else Color(1, 1, 1, 0.85)
-	draw_string(font,
-		band_rect.position + Vector2((band_rect.size.x - ts.x) * 0.5,
-			(band_rect.size.y + ts.y * 0.7) * 0.5),
-		tier_text, HORIZONTAL_ALIGNMENT_LEFT, -1, tier_fs, tier_ink)
+	# Tier RIBBON — a small folded-corner triangle in the rarity color (top-left).
+	# Word pills on every cell read as clutter once the board filled with crafted
+	# stuff; the bare saturated triangle keeps the color scan without the words
+	# (the tutorial pops + discovery card teach what each color means). Junk stays
+	# unmarked — a bare tile IS the junk signal.
+	if d.tier > Items.Tier.JUNK:
+		_draw_tier_corner(inner, d.tier)
 
-	# HERO glyph — item's own color, big, centered. THIS is where color lives.
-	var name_fs: int = max(10, int(inner.size.y * 0.13))
+	# HERO glyph — item's own color, big, centered. THIS is where item-identity
+	# color lives.
+	var name_fs: int = max(14, int(inner.size.y * 0.19))
+	var bottom_pad: float = name_fs + 8.0
 	var glyph_area := Rect2(
-		inner.position + Vector2(2, 2),
-		Vector2(inner.size.x - 4, inner.size.y - band_h - name_fs - 6))
+		inner.position + Vector2(2, 4.0),
+		Vector2(inner.size.x - 4, inner.size.y - 4.0 - bottom_pad))
 	var glyph_fs: int = int(glyph_area.size.y * 0.85 * scale)
 	glyph_fs = clamp(glyph_fs, 16, 80)
 	var gsz := font.get_string_size(d.glyph, HORIZONTAL_ALIGNMENT_CENTER, -1, glyph_fs)
@@ -1228,13 +1215,23 @@ func _draw_item(id: StringName, rect: Rect2, scale: float = 1.0) -> void:
 	var name_ink := Color(0.90, 0.82, 0.60) if d.tier < Items.Tier.INVENTION \
 		else d.color.lightened(0.55)
 	var nsz := font.get_string_size(d.name, HORIZONTAL_ALIGNMENT_CENTER, -1, name_fs)
-	while nsz.x > inner.size.x - 6 and name_fs > 8:
+	while nsz.x > inner.size.x - 6 and name_fs > 10:
 		name_fs -= 1
 		nsz = font.get_string_size(d.name, HORIZONTAL_ALIGNMENT_CENTER, -1, name_fs)
 	draw_string(font,
 		Vector2(inner.position.x + (inner.size.x - nsz.x) * 0.5,
-			inner.position.y + inner.size.y - band_h - 3),
+			inner.position.y + inner.size.y - 5),
 		d.name, HORIZONTAL_ALIGNMENT_LEFT, -1, name_fs, name_ink)
+
+func _draw_tier_corner(inner: Rect2, tier: int) -> void:
+	# Folded-corner ribbon: small footprint, saturated color — tier without words.
+	var col: Color = TIER_COLOR[tier] if tier < TIER_COLOR.size() else TIER_COLOR[0]
+	var sz: float = clamp(inner.size.y * 0.26, 16.0, 32.0)
+	var p := inner.position
+	draw_colored_polygon(PackedVector2Array([
+		p, p + Vector2(sz, 0), p + Vector2(0, sz)]), col)
+	# Crisp dark diagonal edge so the triangle pops on the warm bg.
+	draw_line(p + Vector2(sz, 0), p + Vector2(0, sz), Color(0, 0, 0, 0.35), 1.5)
 
 func _draw_item_name(font: Font, name: String, area: Rect2, scale: float) -> void:
 	# Pick lines: split a 2-word name across two lines.
@@ -1406,9 +1403,8 @@ func _end_drag(p: Vector2) -> void:
 	queue_redraw()
 
 func _show_hint(s: String) -> void:
-	# Small persistent hint at bottom (kept for context).
-	_hint_label.text = s
-	# Also display a big toast — players were missing the bottom hint entirely.
+	# One channel only: the big toast. (A small persistent line under the board
+	# duplicated every message in tiny text — removed.)
 	_show_toast(s, 3.0)
 
 func _show_toast(text: String, seconds: float) -> void:
@@ -1474,17 +1470,17 @@ func _explain_failed_merge(a_id: StringName, b_id: StringName) -> String:
 		return "Those don't fit together."
 	# Same item, top of upgrade chain — needs a DIFFERENT partner.
 	if a_id == b_id and a.tier >= Items.Tier.PART:
-		return "Two %ss don't combine. %s is a Part — pair it with a DIFFERENT part to invent." % [a.name, a.name]
+		return "Pair %s with a DIFFERENT part to invent." % a.name
 	# Same item with no upgrade defined (shouldn't happen for T0/T1 but defensive).
 	if a_id == b_id:
 		return "%s has no further upgrade yet." % a.name
 	# Different items, low tier — junk/components can't cross-combine; only parts do.
 	if a.tier < Items.Tier.PART or b.tier < Items.Tier.PART:
-		return "Junk only merges with the SAME junk. Upgrade them to Parts first, then combine different ones."
+		return "Merge two of the SAME item first."
 	# Different parts, no invention defined for this pair.
 	if _failed_experiments >= 3:
 		return _make_hint()
-	return "%s + %s isn't a known invention. Try other part pairs!" % [a.name, b.name]
+	return "%s + %s don't combine — try another pair!" % [a.name, b.name]
 
 func _make_hint() -> String:
 	# After 3 failures, give a vague clue about the active quest invention
@@ -1681,6 +1677,12 @@ func _on_discovery_cell_input(event: InputEvent, idx: int) -> void:
 	_open_book(lvl.targets[idx])
 
 func _open_tutorial() -> void:
+	# First-run only: the interactive, hand-guided onboarding on a rail board.
+	add_child(preload("res://scenes/tutorial_interactive.tscn").instantiate())
+
+func _open_help() -> void:
+	# "?" tab: the static text quick-reference. Non-destructive — does NOT touch the
+	# board, so a player mid-game can pop it open without losing their progress.
 	add_child(preload("res://scenes/tutorial.tscn").instantiate())
 
 func _make_tab_button(icon: String, label: String, primary: bool, on_press: Callable) -> Button:
@@ -1708,14 +1710,14 @@ func _make_tab_button(icon: String, label: String, primary: bool, on_press: Call
 	else:
 		var icon_lbl := Label.new()
 		icon_lbl.text = icon
-		icon_lbl.add_theme_font_size_override("font_size", 24)
+		icon_lbl.add_theme_font_size_override("font_size", 26)
 		icon_lbl.add_theme_color_override("font_color", tint)
 		icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		icon_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		v.add_child(icon_lbl)
 	var text_lbl := Label.new()
 	text_lbl.text = label
-	text_lbl.add_theme_font_size_override("font_size", 14)
+	text_lbl.add_theme_font_size_override("font_size", 18)
 	text_lbl.add_theme_color_override("font_color", tint)
 	text_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	text_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1730,6 +1732,7 @@ func _enter_tree() -> void:
 	add_child(_chute_timer)
 
 func _on_chute_tick() -> void:
+	if _tutorial_active: return  # rail board is fixed during the first-run tutorial
 	# Decrement recycle blacklist counters; entries drop off when they hit 0.
 	# Keeps recently-rejected items off the chute for ~10s after recycling.
 	for k in _recent_recycles.keys():
@@ -1958,6 +1961,7 @@ func _break_soft_lock_if_needed() -> void:
 	# pair that cross-combines into an UNDISCOVERED invention. Never inject parts
 	# for an already-discovered result — that just clogs the board with duplicate
 	# Fans. Also never replace an INVENTION or higher — the player just made it.
+	if _tutorial_active: return  # never reshape the tutorial's fixed rail board
 	if _in_break_soft_lock: return
 	if GameState.find_empty_cell().x >= 0: return
 	if not _mergeable_cells.is_empty(): return

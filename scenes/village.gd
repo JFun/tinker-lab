@@ -80,7 +80,7 @@ func _build_ui() -> void:
 	v_glyph.offset_left = 30
 	v_glyph.offset_right = -30
 	var v_text := _tab_village.get_node("TextLabel") as Label
-	v_text.add_theme_font_size_override("font_size", 14)
+	v_text.add_theme_font_size_override("font_size", 18)
 	v_text.offset_top = -28
 	v_text.offset_bottom = -8
 	_tab_recipes.pressed.connect(_open_book)
@@ -105,7 +105,7 @@ func _make_tab(kind: String, label: String) -> Button:
 	var text_lbl := Label.new()
 	text_lbl.name = "TextLabel"
 	text_lbl.text = label
-	text_lbl.add_theme_font_size_override("font_size", 12)
+	text_lbl.add_theme_font_size_override("font_size", 17)
 	text_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	text_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	text_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -247,7 +247,7 @@ func _make_npc_card(idx: int, npc: Npcs.NpcDef, status: String) -> PanelContaine
 	# Building name — hero text, NPC-colored
 	var building_lbl := Label.new()
 	building_lbl.text = npc.building_label
-	building_lbl.add_theme_font_size_override("font_size", 22)
+	building_lbl.add_theme_font_size_override("font_size", 28)
 	building_lbl.add_theme_color_override("font_color", npc.color.lightened(0.35))
 	building_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(building_lbl)
@@ -255,14 +255,14 @@ func _make_npc_card(idx: int, npc: Npcs.NpcDef, status: String) -> PanelContaine
 	# NPC name — secondary
 	var name_lbl := Label.new()
 	name_lbl.text = npc.name
-	name_lbl.add_theme_font_size_override("font_size", 16)
+	name_lbl.add_theme_font_size_override("font_size", 20)
 	name_lbl.add_theme_color_override("font_color", Color(0.85, 0.78, 0.55))
 	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(name_lbl)
 
 	# Progress
 	var progress_lbl := Label.new()
-	progress_lbl.add_theme_font_size_override("font_size", 15)
+	progress_lbl.add_theme_font_size_override("font_size", 19)
 	progress_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if done:
 		progress_lbl.text = "✓ Complete"
@@ -332,14 +332,14 @@ func _build_more_sheet() -> Control:
 
 	var title := Label.new()
 	title.text = "Settings"
-	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_font_size_override("font_size", 26)
 	title.add_theme_color_override("font_color", TEXT)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(title)
 
 	# Sound on/off toggle. Text + color cue rather than 🔊/🔇 (those glyphs are
 	# tofu on iOS); flips between a green "On" and a muted-grey "Off".
-	var sound_btn := _make_sheet_button("", 20)
+	var sound_btn := _make_sheet_button("", 23)
 	_update_sound_btn(sound_btn)
 	vb.add_child(sound_btn)
 	sound_btn.pressed.connect(func():
@@ -347,12 +347,12 @@ func _build_more_sheet() -> Control:
 		Audio.play_sfx("place")  # audible confirm when turning sound back ON
 		_update_sound_btn(sound_btn))
 
-	var reset_btn := _make_sheet_button("↺  Reset Game", 20)
+	var reset_btn := _make_sheet_button("↺  Reset Game", 23)
 	reset_btn.add_theme_color_override("font_color", Color(1.0, 0.75, 0.45))
 	vb.add_child(reset_btn)
 	reset_btn.pressed.connect(func(): _confirm_reset(reset_btn, sheet))
 
-	var close_btn := _make_sheet_button("Close", 20)
+	var close_btn := _make_sheet_button("Close", 23)
 	vb.add_child(close_btn)
 	close_btn.pressed.connect(func(): sheet.queue_free())
 
