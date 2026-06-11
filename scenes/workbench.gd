@@ -1398,7 +1398,10 @@ func _end_drag(p: Vector2) -> void:
 					Audio.play_sfx("discover")
 					_failed_experiments = 0
 					_show_discovery_card(result)
-				_show_hint(_post_invention_message(result, def))
+				# During the tutorial the rail narrates every step itself — a toast
+				# on top of the discovery card + finish congrats is a third voice.
+				if not _tutorial_active:
+					_show_hint(_post_invention_message(result, def))
 			GameState.save_game()
 	queue_redraw()
 
@@ -1438,11 +1441,19 @@ func _on_discovery_card_closed() -> void:
 	_show_level_complete(lvl)
 
 func _post_invention_message(id: StringName, def: Items.ItemDef) -> String:
-	# Quest invention? Tell them to deliver, period.
+	# Quest invention? Celebrate with real progress. (There is NO deliver button
+	# anymore — quests auto-complete on discovering all level targets — so never
+	# point at one.)
 	if active_quest_npc != &"":
 		var npc := Npcs.by_id(active_quest_npc)
 		if npc and npc.wants == id:
-			return "%s ready! Tap the green button below to finish the quest." % def.name
+			var npc_targets: Array = Items.LEVELS[npc.level].targets \
+				if npc.level >= 0 and npc.level < Items.LEVELS.size() else []
+			var got := 0
+			for t in npc_targets:
+				if GameState.is_discovered(t): got += 1
+			return "%s built — %d of %d for the %s!" % [
+				def.name, got, max(1, npc_targets.size()), npc.building_label]
 	# Masterwork they just made — pure celebration.
 	if def.tier == Items.Tier.MASTERWORK:
 		return "Masterwork! %s is one of the rarest inventions." % def.name

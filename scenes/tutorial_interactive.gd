@@ -132,6 +132,13 @@ func _apply_phase() -> void:
 			_set_banner("", false)
 		FINISH:
 			_set_banner("", false)
+			# A toast in flight is stale guidance now, and the dim cutout below is
+			# sized to the goal banner — a taller toast in the same slot gets
+			# sliced by the spotlight edge. Silence it so the banner shows clean.
+			if _wb.get("_toast") != null:
+				_wb._toast.visible = false
+			if _wb.get("_goal_banner") != null:
+				_wb._goal_banner.visible = true
 			_build_finish()
 		DONE:
 			pass
@@ -215,8 +222,10 @@ func _build_finish() -> void:
 	var panel := PanelContainer.new()
 	panel.anchor_left = 0.08; panel.anchor_right = 0.92
 	# Zero-height anchor: the card hugs its content (a fixed 0.24–0.62 band left
-	# a slab of dead space under the button).
-	panel.anchor_top = 0.30; panel.anchor_bottom = 0.30
+	# a slab of dead space under the button). Anchored LOW (0.52) because the
+	# rail keeps all tutorial tiles — including the freshly-lit Lamp Post — in
+	# the top two board rows; a centered card covered the player's new trophy.
+	panel.anchor_top = 0.52; panel.anchor_bottom = 0.52
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.17, 0.12, 0.07)
 	sb.border_color = Color(0.95, 0.78, 0.32)
@@ -330,11 +339,38 @@ func _draw_finish() -> void:
 	# second rectangle around it read as a "double box". The dim cutout + arrow
 	# spotlight it plenty.
 	var spot := Rect2(gb.position, gb.size).grow(6.0)
-	_dim_around(spot)
+	# Keep the freshly-lit Lamp Post visible too — it's the player's trophy,
+	# and dimming it out the moment it's made undercuts the payoff.
+	var lamp: Vector2i = _one_of(&"lamp_post")
+	if lamp.x >= 0 and _wb._cell_size > 0.0:
+		var cs: float = _wb._cell_size
+		var lr := Rect2(_wb._cell_origin(lamp.x, lamp.y), Vector2(cs, cs)).grow(4.0)
+		_dim_around_two(spot, lr)
+		draw_rect(lr, Color(1.0, 0.85, 0.35, 0.9), false, 3.0)
+	else:
+		_dim_around(spot)
 	var bounce: float = 6.0 * sin(_t * 4.0)
 	var tip := Vector2(spot.get_center().x, spot.end.y + 6.0 - bounce)
 	var tail := Vector2(tip.x, tip.y + 46.0)
 	_draw_arrow(tail, tip, Color(1.0, 0.9, 0.5, 0.95), 5.0)
+
+func _dim_around_two(a: Rect2, b: Rect2) -> void:
+	# Dim everything except two cutouts, where `a` sits fully ABOVE `b` (here:
+	# goal banner above a board cell). Falls back to one merged cutout if they
+	# ever overlap vertically — never draw dim over a spotlight.
+	if a.end.y > b.position.y:
+		_dim_around(a.merge(b))
+		return
+	var W := size.x
+	var H := size.y
+	var d := Color(0, 0, 0, 0.62)
+	draw_rect(Rect2(0, 0, W, a.position.y), d)
+	draw_rect(Rect2(0, a.position.y, a.position.x, a.size.y), d)
+	draw_rect(Rect2(a.end.x, a.position.y, max(0.0, W - a.end.x), a.size.y), d)
+	draw_rect(Rect2(0, a.end.y, W, max(0.0, b.position.y - a.end.y)), d)
+	draw_rect(Rect2(0, b.position.y, b.position.x, b.size.y), d)
+	draw_rect(Rect2(b.end.x, b.position.y, max(0.0, W - b.end.x), b.size.y), d)
+	draw_rect(Rect2(0, b.end.y, W, max(0.0, H - b.end.y)), d)
 
 func _dim_around(spot: Rect2) -> void:
 	var W := size.x

@@ -306,6 +306,11 @@ func _screenshot_then_quit() -> void:
 				tut._show_tier_pop(tut._one_of(&"bolt_bundle"), "Crafted!", Items.Tier.COMPONENT)
 				for i in 2: await get_tree().process_frame
 			if which == "tutorial_finish":
+				# Mirror the real post-merge board: only the freshly-made Lamp Post
+				# remains, already discovered — exercises the double-cutout dim.
+				GameState.clear_board()
+				GameState.set_cell(0, 1, &"lamp_post")
+				GameState.discover(&"lamp_post")
 				tut._set_phase(tut.FINISH)
 				for i in 4: await get_tree().process_frame
 		if which == "level_complete":
