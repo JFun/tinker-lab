@@ -221,11 +221,13 @@ func _build_finish() -> void:
 
 	var panel := PanelContainer.new()
 	panel.anchor_left = 0.08; panel.anchor_right = 0.92
-	# Zero-height anchor: the card hugs its content (a fixed 0.24–0.62 band left
-	# a slab of dead space under the button). Anchored LOW (0.52) because the
-	# rail keeps all tutorial tiles — including the freshly-lit Lamp Post — in
-	# the top two board rows; a centered card covered the player's new trophy.
+	# Zero-height anchor + grow BOTH: the card hugs its content, CENTERED on
+	# 0.52 — low enough that the rail's tiles (always in the top two rows,
+	# including the freshly-lit Lamp Post) stay visible, high enough that the
+	# card bottom never reaches the recycle panel below the board (growing
+	# only downward from 0.52 covered the bin).
 	panel.anchor_top = 0.52; panel.anchor_bottom = 0.52
+	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.17, 0.12, 0.07)
 	sb.border_color = Color(0.95, 0.78, 0.32)

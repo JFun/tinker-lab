@@ -31,10 +31,12 @@ func _ready() -> void:
 	set_process_input(false)
 	get_tree().create_timer(0.05).timeout.connect(func(): set_process_input(true))
 
-	# Card panel — centered, vertically centered, content-sized.
+	# Card panel — shrink-wraps its content and centers on screen (the old fixed
+	# 0.15–0.75 band left a tall empty slab under the dismiss line).
 	var panel := PanelContainer.new()
 	panel.anchor_left = 0.05; panel.anchor_right = 0.95
-	panel.anchor_top = 0.15; panel.anchor_bottom = 0.75
+	panel.anchor_top = 0.45; panel.anchor_bottom = 0.45
+	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 	add_child(panel)
 
 	var sb := StyleBoxFlat.new()
@@ -107,21 +109,14 @@ func _ready() -> void:
 		story_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		v.add_child(story_lbl)
 
-	# Ingredient roles line
-	if parents.size() == 2:
-		var roles := Label.new()
-		var pa: Items.ItemDef = parents[0]
-		var pb: Items.ItemDef = parents[1]
-		roles.text = "%s + %s = %s" % [pa.name, pb.name, def.name]
-		roles.add_theme_font_size_override("font_size", 20)
-		roles.add_theme_color_override("font_color", Color(0.65, 0.58, 0.40))
-		roles.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		v.add_child(roles)
+	# (No "A + B = C" text line — the labeled tile graphic above IS the recipe;
+	# repeating it in words was one more line of small text. The Recipe Book
+	# shows the formula for later reference.)
 
 	# Tap to dismiss label
 	var dismiss := Label.new()
 	dismiss.text = "Tap anywhere to continue"
-	dismiss.add_theme_font_size_override("font_size", 20)
+	dismiss.add_theme_font_size_override("font_size", 22)
 	dismiss.add_theme_color_override("font_color", Color(0.50, 0.45, 0.35))
 	dismiss.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(dismiss)
@@ -154,7 +149,7 @@ func _make_ingredient_tile(d: Items.ItemDef) -> PanelContainer:
 	vb.add_child(glyph)
 	var nm := Label.new()
 	nm.text = d.name
-	nm.add_theme_font_size_override("font_size", 18)
+	nm.add_theme_font_size_override("font_size", 20)
 	nm.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(nm)
@@ -174,18 +169,15 @@ func _make_result_tile(d: Items.ItemDef) -> PanelContainer:
 	var vb := VBoxContainer.new()
 	vb.alignment = BoxContainer.ALIGNMENT_CENTER
 	tile.add_child(vb)
+	# Glyph only — the big 30pt name sits right beside this tile, so a second
+	# tiny name inside it was pure duplication.
 	var glyph := Label.new()
 	glyph.text = d.glyph
-	glyph.add_theme_font_size_override("font_size", 44)
+	glyph.add_theme_font_size_override("font_size", 52)
 	glyph.add_theme_color_override("font_color", Color(1, 1, 1, 0.95))
 	glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	vb.add_child(glyph)
-	var nm := Label.new()
-	nm.text = d.name
-	nm.add_theme_font_size_override("font_size", 20)
-	nm.add_theme_color_override("font_color", Color(1, 1, 1, 0.90))
-	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vb.add_child(nm)
 	return tile
 
 func _input(event: InputEvent) -> void:

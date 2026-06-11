@@ -111,7 +111,7 @@ func _screenshot_then_quit() -> void:
 			var dims := a.substr(13).split("x")
 			if dims.size() == 2:
 				DisplayServer.window_set_size(Vector2i(int(dims[0]), int(dims[1])))
-	var shots := ["village", "settings", "workbench", "workbench_drag", "workbench_hint", "workbench_hint_full", "workbench_recycle", "workbench_delivery", "tiers", "book", "book_partial", "book_targeted", "tutorial", "tutorial_pop", "tutorial_finish", "help", "glyph_audit", "level_complete", "workshop_complete"]
+	var shots := ["village", "settings", "workbench", "workbench_drag", "workbench_hint", "workbench_hint_full", "workbench_recycle", "workbench_delivery", "tiers", "book", "book_partial", "book_targeted", "tutorial", "tutorial_pop", "tutorial_finish", "discovery", "help", "glyph_audit", "level_complete", "workshop_complete"]
 	if only != "":
 		shots = [only]
 	for which in shots:
@@ -313,6 +313,12 @@ func _screenshot_then_quit() -> void:
 				GameState.discover(&"lamp_post")
 				tut._set_phase(tut.FINISH)
 				for i in 4: await get_tree().process_frame
+		if which == "discovery":
+			# The invention discovery card exactly as the merge flow spawns it.
+			var dc := preload("res://scenes/discovery_card.gd").new()
+			dc.invention_id = &"lamp_post"
+			scene.add_child(dc)
+			for i in 5: await get_tree().process_frame
 		if which == "level_complete":
 			var lc := preload("res://scenes/level_complete.tscn").instantiate()
 			lc.level_idx = 0
