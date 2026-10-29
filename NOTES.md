@@ -148,3 +148,17 @@ iOS, false positives are common).
 
 Avoid the word "merge" in App Store subtitle. Tinker Lab files under Puzzle
 (primary) + Simulation (secondary) — keeps out of the Mansion comparison pool.
+
+## iOS anonymous measurement review build 10 — October 28, 2026
+
+Prepared from the live build 9 source. FirebaseBootstrap registers baseline zero through
+Apple StoreKit without ATT, IDFA/IDFV collection, Tenjin SDK access or custom first_open
+callbacks. Info.plist sends anonymous signed Apple postback copies to tenjin-skan.com and
+enables Google's existing on-device event measurement. This is SKAN reporting, not
+Tenjin raw device attribution or Tenjin ICM. Matching privacy copy is a local draft;
+store upload/submission/publication still needs exact-candidate owner approval.
+
+Account setup completed October 28: Firebase App Store ID 6775281264 saved and read back,
+Analytics property 539696744 linked to Ads 6727445203 with personalization off, and its
+iOS Firebase first_open conversion imported/enabled. No campaign was activated and no
+new live paid-attribution receipt is claimed.
