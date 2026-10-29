@@ -10,6 +10,7 @@
 
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
+#import <StoreKit/StoreKit.h>
 
 @import FirebaseCore;
 
@@ -35,6 +36,21 @@
             [FIRApp configure];
             NSLog(@"[FirebaseBootstrap] FirebaseApp.configure() done");
         }
+#if !DEBUG
+        // Anonymous Apple attribution only; no Tenjin SDK or tracking prompt.
+        NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+        BOOL declined = [[defaults stringForKey:@"jfun_install_measurement.choice"] isEqual:@"deny"]
+            || [[defaults dictionaryForKey:@"jfun_install_measurement"][@"choice"] isEqual:@"deny"];
+        if (!declined) {
+            if (@available(iOS 16.1, *)) {
+                [SKAdNetwork updatePostbackConversionValue:0 coarseValue:SKAdNetworkCoarseConversionValueLow lockWindow:NO completionHandler:^(NSError *error) {}];
+            } else if (@available(iOS 15.4, *)) {
+                [SKAdNetwork updatePostbackConversionValue:0 completionHandler:^(NSError *error) {}];
+            } else {
+                [SKAdNetwork updateConversionValue:0];
+            }
+        }
+#endif
         // Kick off the GDScript event-forwarder. The Swift module name depends
         // on how Godot names the iOS target, so try the likely variants.
         Class bridge = Nil;

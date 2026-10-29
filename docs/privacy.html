@@ -47,8 +47,7 @@
       operating system version, app version, language, region (country-level), and
       general app interaction and session data.</li>
     <li><span class="yes">Identifiers</span> &mdash; Firebase Analytics collects the
-      Apple <strong>Identifier for Vendor (IDFV)</strong> and a
-      <strong>Firebase Installation ID</strong>. These are per-install identifiers used
+      <strong>per-install Firebase analytics identifier</strong>. These are per-install identifiers used
       to count distinct devices and sessions. They are not linked to your name, email,
       or any personal account.</li>
   </ul>
@@ -63,12 +62,29 @@
   </ul>
 
   <h2>How the data is used</h2>
-  <p>Analytics data is used solely for first-party purposes: measuring engagement
+  <p>Analytics helps us understand how players discover and play the game: measuring engagement
   (such as how many players reach each level) and diagnosing problems so we can make
   the game better. We do <strong>not</strong> sell your data, we do <strong>not</strong>
   share it with data brokers, and we do <strong>not</strong> use it for cross-app or
   cross-website advertising. Google Signals is not enabled.</p>
 
+
+  <section id="ios-install-measurement">
+  <h2>Install measurement on iOS</h2>
+  <p>We use Apple's SKAdNetwork to understand whether an advertisement led to an app
+  installation. Apple sends delayed, signed, anonymous attribution reports to the ad
+  network and sends a copy to <a href="https://tenjin.com/privacy/">Tenjin</a> for our
+  campaign reports. Apple may withhold campaign or conversion details to protect privacy.</p>
+  <p>Google Firebase can use de-identified, temporary app event data for on-device
+  conversion measurement to improve Google Ads install reporting. Ad personalization
+  stays off. We do not supply an email address or phone number. This iOS measurement
+  does not collect Apple's advertising identifier (IDFA) or Identifier for Vendor
+  (IDFV), and does not use the Tenjin SDK or device-level Tenjin first-open callbacks.
+  It does not display an App Tracking Transparency prompt.</p>
+  <p>Learn <a href="https://policies.google.com/technologies/partner-sites">how Google
+  uses information from apps that use its services</a>. These anonymous attribution
+  reports are separate from our existing gameplay analytics and your locally saved progress.</p>
+  </section>
   <h2>Tracking</h2>
   <p>The app does not track you in the sense defined by Apple's App Tracking
   Transparency framework: we do not link your data with third-party data for targeted
